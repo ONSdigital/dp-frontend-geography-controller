@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io/ioutil"
 	// "bytes"
 	// "context"
 	// "encoding/json"
@@ -16,6 +17,7 @@ import (
 
 	// "github.com/gorilla/mux"
 
+	"github.com/ONSdigital/dp-frontend-geography-controller/models"
 	// "github.com/ONSdigital/dp-frontend-geography-controller/config"
 	// "github.com/ONSdigital/dp-frontend-geography-controller/mapper"
 	// "github.com/ONSdigital/go-ns/clients/dataset"
@@ -28,6 +30,9 @@ import (
 )
 
 const dataEndpoint = `\/data$`
+const localAuthority = `?type=geography`
+
+// const localAuthority = `/local-authority`
 
 // FilterClient is an interface with the methods required for a filter client
 // type FilterClient interface {
@@ -87,11 +92,65 @@ func GeographyTest(rend RenderClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		log.Debug("sgftvcdxxea", nil)
 		var page geographyHomepage.Page
+
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + localAuthority)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		var codelistresults models.CodeListResults
+		err = json.Unmarshal(b, &codelistresults)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		var codelist models.CodeList
+		err = json.Unmarshal(b, &codelist)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		// var geographyTypes
+		geographyTypes := ""
+		// for i := 0; i < 0; i++ {
+		// 	geographyTypes := geographyTypes + (`Name: ` + string(codelist.Name))
+		// }
+		// fmt.Println(codelistresults.Items)
+		for i := range codelistresults.Items {
+			// log.Debug("test codelist range", nil)
+			geographyTypes = geographyTypes + codelistresults.Items[i].Name
+
+		}
+		// geographyTypes := string(codelist.Name)
+		// toostids := string(codelist.Links.Self.ID)
+		// fmt.Println(geographyTypes)
+		// fmt.Println(toostids)
+		// log.Debug(geographyTypes, nil)
+		// 	m := mapper.CreateFilterableLandingPage(req.Context(), datasetModel, ver, datasetID, opts, dims, displayOtherVersionsLink, bc)
+		// 	for i, d := range m.DatasetLandingPage.Version.Downloads {
+		// 		if len(cfg.DownloadServiceURL) > 0 {
+		// 			downloadURL, err := url.Parse(d.URI)
+		// 			if err != nil {
+		// 				setStatusCode(req, w, err)
+		// 				return
+		// 			}
+
+		// 			d.URI = cfg.DownloadServiceURL + downloadURL.Path
+		// 			m.DatasetLandingPage.Version.Downloads[i] = d
+		// 		}
+		// 	}
 		page.Data.Items = []geographyHomepage.GeographyDataType{
 			{Name: "Countries"},
 			{Name: "Regions"},
-			{Name: "Local authorities"},
+			{Name: geographyTypes},
 		}
+
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
 			setStatusCode(req, w, err)
