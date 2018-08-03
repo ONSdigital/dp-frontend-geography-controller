@@ -4,39 +4,18 @@ import "github.com/ian-kent/gofigure"
 
 var cfg Config
 
+//Config represents service configuration for dp-frontend-geography-controller
 type Config struct {
-	BindAddr    string `env:"BIND_ADDR"`
-	ZebedeeURL  string `env:"ZEBEDEE_URL"`
-	RendererURL string `env:"RENDERER_URL"`
-	// FilterAPIURL        string `env:"FILTER_API_URL"`
-	// DatasetAPIURL       string `env:"DATASET_API_URL"`
-	// DatasetAPIAuthToken string `env:"DATASET_API_AUTH_TOKEN"`
-	// FilterAPIAuthToken  string `env:"FILTER_API_AUTH_TOKEN"`
-	MailHost           string `env:"MAIL_HOST"`
-	MailUser           string `env:"MAIL_USER"`
-	MailPassword       string `env:"MAIL_PASSWORD"`
-	MailPort           string `env:"MAIL_PORT"`
-	FeedbackTo         string `env:"FEEDBACK_TO"`
-	FeedbackFrom       string `env:"FEEDBACK_FROM"`
+	BindAddr           string `env:"BIND_ADDR"`
+	RendererURL        string `env:"RENDERER_URL"`
 	DownloadServiceURL string `env:"DOWNLOAD_SERVICE_URL"`
 }
 
 func init() {
 	cfg = Config{
-		BindAddr:    ":23700",
-		ZebedeeURL:  "http://localhost:8082",
-		RendererURL: "http://localhost:20010",
-		// FilterAPIURL:        "http://localhost:22100",
-		// DatasetAPIURL:       "http://localhost:22000",
-		// DatasetAPIAuthToken: "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		// FilterAPIAuthToken:  "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		BindAddr:           ":23700",
+		RendererURL:        "http://localhost:20010",
 		DownloadServiceURL: "http://localhost:23600",
-		MailHost:           "",
-		MailPort:           "",
-		MailUser:           "",
-		MailPassword:       "",
-		FeedbackTo:         "",
-		FeedbackFrom:       "",
 	}
 	err := gofigure.Gofigure(&cfg)
 	if err != nil {
