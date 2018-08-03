@@ -34,7 +34,7 @@ func main() {
 
 	rend := renderer.New(cfg.RendererURL)
 
-	router.StrictSlash(true).Path("/geography/").Methods("GET").HandlerFunc(handlers.GeographyRender(rend))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyRender(rend))
 
 	s := server.New(cfg.BindAddr, router)
 	s.HandleOSSignals = false
