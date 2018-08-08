@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
 	"github.com/ONSdigital/go-ns/clients/renderer"
+	"github.com/ONSdigital/go-ns/handlers/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
@@ -17,12 +18,6 @@ import (
 
 type unencryptedAuth struct {
 	smtp.Auth
-}
-
-func (a unencryptedAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
-	s := *server
-	s.TLS = true
-	return a.Auth.Start(&s)
 }
 
 func main() {
@@ -34,7 +29,16 @@ func main() {
 
 	rend := renderer.New(cfg.RendererURL)
 
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyRender(rend))
+	router.StrictSlash(true).Path("/healthcheck").HandlerFunc(healthcheck.Handler)
+
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyHomepageRender(rend))
+
+	router.StrictSlash(true).Path("/geography/{geographyID}").Methods("GET").HandlerFunc(handlers.GeographyListpageRender(rend))
+
+	log.Info("Starting server", log.Data{
+		"bind_addr":    cfg.BindAddr,
+		"renderer_url": cfg.RendererURL,
+	})
 
 	s := server.New(cfg.BindAddr, router)
 	s.HandleOSSignals = false

@@ -1,7 +1,7 @@
 dp-frontend-geography-controller
 ==================
 
-An HTTP service for the controlling of the geography data datasets.
+An HTTP service for connecting the geography datasets to the cmd datasets journey.
 
 ### Configuration
 

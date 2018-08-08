@@ -13,9 +13,8 @@ type Config struct {
 
 func init() {
 	cfg = Config{
-		BindAddr:           ":23700",
-		RendererURL:        "http://localhost:20010",
-		DownloadServiceURL: "http://localhost:23600",
+		BindAddr:    ":23700",
+		RendererURL: "http://localhost:20010",
 	}
 	err := gofigure.Gofigure(&cfg)
 	if err != nil {
