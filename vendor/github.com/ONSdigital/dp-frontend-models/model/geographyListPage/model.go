@@ -15,6 +15,6 @@ type GeographyListPage struct {
 
 // AreaType represents the Type of data of the Geography page
 type AreaType struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
+	Label string `json:"name"`
+	ID    string `json:"id"`
 }

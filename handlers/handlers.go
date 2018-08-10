@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ONSdigital/dp-frontend-models/model/geographyHomepage"
+	"github.com/ONSdigital/dp-frontend-models/model/geographyListPage"
 
 	"github.com/ONSdigital/dp-frontend-geography-controller/models"
 
@@ -48,8 +49,8 @@ func forwardFlorenceTokenIfRequired(req *http.Request) *http.Request {
 	return req
 }
 
-//GeographyRender ...
-func GeographyRender(rend RenderClient) http.HandlerFunc {
+//GeographyHomepageRender ...
+func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
@@ -83,14 +84,15 @@ func GeographyRender(rend RenderClient) http.HandlerFunc {
 				"geographyTypesTest": codelistresults.Items[i],
 			})
 
-			geographyTypes = geographyTypes + codelistresults.Items[i].Name
+			geographyTypes = geographyTypes + codelistresults.Items[i].Label
 
 		}
 
 		page.Data.AreaTypes = []geographyHomepage.AreaType{
-			{Name: "Countries"},
-			{Name: "Regions"},
-			{Name: geographyTypes},
+			{Label: "Countries"},
+			{Label: "Regions"},
+			{Label: "Local authorities"},
+			{Label: geographyTypes},
 		}
 
 		page.Metadata.Title = "Geography"
@@ -101,6 +103,87 @@ func GeographyRender(rend RenderClient) http.HandlerFunc {
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		w.Write(templateHTML)
+		return
+	}
+}
+
+//GeographyListpageRender ...
+func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		var page geographyListPage.Page
+
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/local-authority/editions/2016/codes`)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var codelistresults models.CodeListResults
+		err = json.Unmarshal(b, &codelistresults)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		var codelist models.CodeList
+		err = json.Unmarshal(b, &codelist)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var geographyTypes []string
+		// geographyTypes := ""
+
+		for i := range codelistresults.Items {
+
+			if i >= 10 {
+				break
+			}
+
+			// log.Debug("test", log.Data{
+			// 	"geographyTypesTest": codelistresults.Items[i].Links.Self.Href,
+			// })
+
+			geographyTypes = append(geographyTypes, codelistresults.Items[i].Label, codelistresults.Items[i].ID)
+			// geographyTypes = geographyTypes + codelistresults.Items[i].Links.Self.Href
+			// geographyTypes = geographyTypes + codelistresults.Items[i].Label
+			log.Debug("test", log.Data{
+				"geographyTypesTest": geographyTypes,
+			})
+		}
+
+		// page.Data.AreaTypes = geographyTypes
+		// page.Data.AreaTypes = []geographyListPage.AreaType{geographyTypes}
+		page.Data.AreaTypes = []geographyListPage.AreaType{
+			{Label: "England"},
+			{Label: "England and Wales"},
+			{Label: "Great Britain"},
+			{Label: "Northern Ireland"},
+			{Label: "Scotland"},
+			{Label: "United Kingdom"},
+			{Label: "Wales"},
+		}
+
+		page.Metadata.Title = "Countries"
+
+		templateJSON, err := json.Marshal(page)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		templateHTML, err := rend.Do("geography-list-page", templateJSON)
 		if err != nil {
 			setStatusCode(req, w, err)
 			return
