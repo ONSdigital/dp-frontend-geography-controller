@@ -1,7 +1,7 @@
 dp-frontend-geography-controller
 ==================
 
-An HTTP service for the controlling of the geography data relevant to a particular dataset.
+An HTTP service for connecting the geography datasets to the cmd datasets journey.
 
 ### Configuration
 
@@ -9,8 +9,6 @@ An HTTP service for the controlling of the geography data relevant to a particul
 | -------------------- | ----------------------- | --------------------------------------
 | BIND_ADDR            | :23700                  | The host and port to bind to.
 | RENDERER_URL         | http://localhost:20010  | The URL of dp-frontend-renderer.
-| ZEBEDEE_URL          | http://localhost:8082   | The URL of zebedee.
-| SLACK_TOKEN          |                         | A slack token to write feedback to slack
 
 ### Licence
 
