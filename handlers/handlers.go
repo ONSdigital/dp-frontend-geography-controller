@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -143,38 +144,57 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 			return
 		}
 
-		var geographyTypes []string
+		// var geographyTypes []string
+		// geographyTypes := []string{"England"}
+		// geographyTypesLabel := []string{"England"}
+		// geographyTypesID := []string{"test"}
+		// geographyTypes := []struct {
+		// 	Label string
+		// 	id    string
+		// }{
+		// 	{"England", "test"},
+		// }
+		// geographyTypes := []struct {
+		// 	Label string
+		// }{
+		// 	{Label: "England"},
+		// }
+
+		type geographyTypes struct {
+			Label string
+			ID    string
+		}
+		// var geographyTypes []string
 		// geographyTypes := ""
 
-		for i := range codelistresults.Items {
+		// for i := range codelistresults.Items {
 
-			if i >= 10 {
-				break
-			}
-
-			// log.Debug("test", log.Data{
-			// 	"geographyTypesTest": codelistresults.Items[i].Links.Self.Href,
-			// })
-
-			geographyTypes = append(geographyTypes, codelistresults.Items[i].Label, codelistresults.Items[i].ID)
-			// geographyTypes = geographyTypes + codelistresults.Items[i].Links.Self.Href
-			// geographyTypes = geographyTypes + codelistresults.Items[i].Label
-			log.Debug("test", log.Data{
-				"geographyTypesTest": geographyTypes,
-			})
-		}
+		// 	if i >= 10 {
+		// 		break
+		// 	}
+		//, codelistresults.Items[i].ID
+		// geographyTypes = append(geographyTypes, codelistresults.Items[i].Label)
+		// geographyTypes = append(geographyTypes, codelistresults.Items[i].Label)
+		// geographyTypes = geographyTypes + codelistresults.Items[i].Label + "} {"
+		fmt.Println(geographyTypes{"England", "test"})
+		fmt.Println(geographyTypes{Label: "England", ID: "test"})
+		log.Debug("test", log.Data{
+			"geographyTypesTest": geographyTypes,
+		})
+		// }
 
 		// page.Data.AreaTypes = geographyTypes
 		// page.Data.AreaTypes = []geographyListPage.AreaType{geographyTypes}
-		page.Data.AreaTypes = []geographyListPage.AreaType{
-			{Label: "England"},
-			{Label: "England and Wales"},
-			{Label: "Great Britain"},
-			{Label: "Northern Ireland"},
-			{Label: "Scotland"},
-			{Label: "United Kingdom"},
-			{Label: "Wales"},
-		}
+		// page.Data.AreaTypes = []geographyListPage.AreaType{
+		// 	{Label: "England"},
+		// 	{Label: "England and Wales"},
+		// 	{Label: "Great Britain"},
+		// 	{Label: "Northern Ireland"},
+		// 	{Label: "Scotland"},
+		// 	{Label: "United Kingdom"},
+		// 	{Label: "Wales"},
+		// 	{Label: geographyTypes},
+		// }
 
 		page.Metadata.Title = "Countries"
 
