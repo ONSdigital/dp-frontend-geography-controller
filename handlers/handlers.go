@@ -11,13 +11,15 @@ import (
 
 	"github.com/ONSdigital/dp-frontend-geography-controller/models"
 
+	"github.com/gorilla/mux"
+
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 )
 
 const dataEndpoint = `\/data$`
-const localAuthority = `?type=geography`
+const typeGeography = `?type=geography`
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
@@ -56,7 +58,7 @@ func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + localAuthority)
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography)
 		if err != nil {
 			setStatusCode(req, w, err)
 			return
@@ -90,9 +92,9 @@ func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 		}
 
 		page.Data.AreaTypes = []geographyHomepage.AreaType{
-			{Label: "Countries"},
-			{Label: "Regions"},
-			{Label: "Local authorities"},
+			{Label: "Countries", ID: "country"},
+			{Label: "Regions", ID: "region"},
+			{Label: "Local authorities", ID: "local-authority"},
 			{Label: geographyTypes},
 		}
 
@@ -120,9 +122,19 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyListPage.Page
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/local-authority/editions/2016/codes`)
+		vars := mux.Vars(req)
+		areaTypeID := vars["areaTypeID"]
+
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes`)
+		fmt.Println("error err", err)
+		fmt.Println("error resp.StatusCode", resp.StatusCode)
 		if err != nil {
 			setStatusCode(req, w, err)
+			return
+		}
+		if resp.StatusCode == 404 {
+			fmt.Println("ERROR 404 not 500")
+			setStatusCode(req, w, err) //<--error 500
 			return
 		}
 		b, err := ioutil.ReadAll(resp.Body)
@@ -144,59 +156,18 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 			return
 		}
 
-		// var geographyTypes []string
-		// geographyTypes := []string{"England"}
-		// geographyTypesLabel := []string{"England"}
-		// geographyTypesID := []string{"test"}
-		// geographyTypes := []struct {
-		// 	Label string
-		// 	id    string
-		// }{
-		// 	{"England", "test"},
-		// }
-		// geographyTypes := []struct {
-		// 	Label string
-		// }{
-		// 	{Label: "England"},
-		// }
+		var geographyTypes []geographyListPage.AreaType
+		for i := range codelistresults.Items {
 
-		type geographyTypes struct {
-			Label string
-			ID    string
+			if i >= 10 {
+				break
+			}
+
+			geographyTypes = append(geographyTypes, geographyListPage.AreaType{Label: codelistresults.Items[i].Label, ID: codelistresults.Items[i].ID})
 		}
-		// var geographyTypes []string
-		// geographyTypes := ""
 
-		// for i := range codelistresults.Items {
-
-		// 	if i >= 10 {
-		// 		break
-		// 	}
-		//, codelistresults.Items[i].ID
-		// geographyTypes = append(geographyTypes, codelistresults.Items[i].Label)
-		// geographyTypes = append(geographyTypes, codelistresults.Items[i].Label)
-		// geographyTypes = geographyTypes + codelistresults.Items[i].Label + "} {"
-		fmt.Println(geographyTypes{"England", "test"})
-		fmt.Println(geographyTypes{Label: "England", ID: "test"})
-		log.Debug("test", log.Data{
-			"geographyTypesTest": geographyTypes,
-		})
-		// }
-
-		// page.Data.AreaTypes = geographyTypes
-		// page.Data.AreaTypes = []geographyListPage.AreaType{geographyTypes}
-		// page.Data.AreaTypes = []geographyListPage.AreaType{
-		// 	{Label: "England"},
-		// 	{Label: "England and Wales"},
-		// 	{Label: "Great Britain"},
-		// 	{Label: "Northern Ireland"},
-		// 	{Label: "Scotland"},
-		// 	{Label: "United Kingdom"},
-		// 	{Label: "Wales"},
-		// 	{Label: geographyTypes},
-		// }
-
-		page.Metadata.Title = "Countries"
+		page.Data.AreaTypes = geographyTypes
+		page.Metadata.Title = areaTypeID
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
