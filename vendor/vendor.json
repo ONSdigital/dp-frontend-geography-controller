@@ -21,6 +21,12 @@
 			"revisionTime": "2018-08-03T08:54:08Z"
 		},
 		{
+			"checksumSHA1": "orVg4kCLBQPnVmI5mC/O/plPLx8=",
+			"path": "github.com/ONSdigital/dp-frontend-models/model/geographyAreaPage",
+			"revision": "c2e8b1cc5732bb937723394bb56e1b7bec47d6b3",
+			"revisionTime": "2018-08-10T13:03:59Z"
+		},
+		{
 			"checksumSHA1": "+rsjNtumZUdoJ5k3D6TI8+RkkTU=",
 			"path": "github.com/ONSdigital/go-ns/clients/clientlog",
 			"revision": "491470a66fbb2471ff3fd02f8159b7158d9281ab",
