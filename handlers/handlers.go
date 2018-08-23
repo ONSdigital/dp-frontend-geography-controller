@@ -19,10 +19,7 @@ import (
 )
 
 const dataEndpoint = `\/data$`
-
 const typeGeography = `?type=geography`
-
-// const typeGeography = `/local-authority/editions`
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
@@ -47,6 +44,12 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 	w.WriteHeader(status)
 }
 
+func setStatusCode404(req *http.Request, w http.ResponseWriter, err error) {
+	status := http.StatusNotFound
+	log.ErrorCtx(req.Context(), err, log.Data{"setting-response-status": status})
+	w.WriteHeader(status)
+}
+
 func forwardFlorenceTokenIfRequired(req *http.Request) *http.Request {
 	if len(req.Header.Get(common.FlorenceHeaderKey)) > 0 {
 		ctx := common.SetFlorenceIdentity(req.Context(), req.Header.Get(common.FlorenceHeaderKey))
@@ -60,79 +63,85 @@ func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
+		homePageLink := `https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography)
+		resp, err := http.Get(homePageLink)
 		if err != nil {
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
 			log.Error(err, log.Data{"test": "error http.Get"})
 			setStatusCode(req, w, err)
 			return
 		}
+		if resp.StatusCode == 404 {
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": resp.StatusCode})
+			setStatusCode404(req, w, err)
+			return
+		}
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error Body"})
+			log.Error(err, log.Data{"error getting the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender .Body returned ": resp.Body})
 			setStatusCode(req, w, err)
 			return
 		}
 		var codelistresults models.CodeListResults
 		err = json.Unmarshal(b, &codelistresults)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error codelistresults"})
+			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		var codelist models.CodeList
 		err = json.Unmarshal(b, &codelist)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error codelist"})
+			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 
-		// geographyTypesLabel := ""
+		var geographyTypes []geographyHomepage.AreaType
+		geographyTypesLabel := ""
 		geographyTypesID := ""
 		for i := range codelistresults.Items {
 			log.Debug("test", log.Data{
 				"geographyTypesTest": codelistresults.Items[i],
 			})
 
-			geographyTypesID = geographyTypesID + codelistresults.Items[i].Links.Self.ID
-			// geographyTypesLabel = geographyTypesLabel + codelistresults.Items[i].Links.Editions.Href
-			// resp2, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography)
-			// if err != nil {
-			// 	setStatusCode(req, w, err)
-			// 	return
-			// }
-			// b2, err := ioutil.ReadAll(resp2.Body)
-			// if err != nil {
-			// 	setStatusCode(req, w, err)
-			// 	return
-			// }
-			// var codelistresults2 models.CodeListResults
-			// err = json.Unmarshal(b2, &codelistresults)
-			// if err != nil {
-			// 	setStatusCode(req, w, err)
-			// 	return
-			// }
-			// geographyTypesLabel = codelistresults2
+			geographyTypesID = codelistresults.Items[i].Links.Self.ID
+
+			resp, err := http.Get(codelistresults.Items[i].Links.Editions.Href)
+			if err != nil {
+				setStatusCode(req, w, err)
+				return
+			}
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				setStatusCode(req, w, err)
+				return
+			}
+			var codelistresults models.CodeListResults
+			err = json.Unmarshal(b, &codelistresults)
+			if err != nil {
+				setStatusCode(req, w, err)
+				return
+			}
+			geographyTypesLabel = codelistresults.Items[0].Label
+
+			geographyTypes = append(geographyTypes, geographyHomepage.AreaType{Label: geographyTypesLabel, ID: geographyTypesID})
 
 		}
 
-		page.Data.AreaTypes = []geographyHomepage.AreaType{
-			// {Label: "Countries", ID: "country"},
-			// {Label: "Regions", ID: "region"},
-			// {Label: "Local authorities", ID: "local-authority"},
-			{Label: geographyTypesID, ID: geographyTypesID},
-		}
-
+		page.Data.AreaTypes = geographyTypes
 		page.Metadata.Title = "Geography"
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
+			log.Error(err, log.Data{"error Marshaling the page data for GeographyHomepageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
 		if err != nil {
+			log.Error(err, log.Data{"error rendering the geography-homepage data from GeographyHomepageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
@@ -150,24 +159,22 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 
 		vars := mux.Vars(req)
 		areaTypeID := vars["areaTypeID"]
+		listPageLink := `https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes`
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes`)
-		// fmt.Println("error err", err)
-		// fmt.Println("error resp.StatusCode", resp.StatusCode)
+		resp, err := http.Get(listPageLink)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error http.Get"})
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + listPageLink + ") for GeographyListpageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		if resp.StatusCode == 404 {
-			// fmt.Println("ERROR 404 not 500")
-			log.Error(err, log.Data{"test": "error resp"})
-			setStatusCode(req, w, err) //<--error 500
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + listPageLink + ") for GeographyListpageRender returned ": resp.StatusCode})
+			setStatusCode404(req, w, err)
 			return
 		}
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error Body"})
+			log.Error(err, log.Data{"error getting the .Body data from the code-lists api http.Get(" + listPageLink + ") for GeographyListpageRender .Body returned ": resp.Body})
 			setStatusCode(req, w, err)
 			return
 		}
@@ -175,25 +182,20 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 		var codelistresults models.CodeListResults
 		err = json.Unmarshal(b, &codelistresults)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error codelistresults"})
+			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + listPageLink + ") for GeographyListpageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		var codelist models.CodeList
 		err = json.Unmarshal(b, &codelist)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error codelist"})
+			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + listPageLink + ") for GeographyListpageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 
 		var geographyTypes []geographyListPage.AreaType
 		for i := range codelistresults.Items {
-
-			if i >= 10 {
-				break
-			}
-
 			geographyTypes = append(geographyTypes, geographyListPage.AreaType{Label: codelistresults.Items[i].Label, ID: codelistresults.Items[i].ID})
 		}
 
@@ -202,11 +204,13 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
+			log.Error(err, log.Data{"error Marshaling the page data for GeographyListpageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-list-page", templateJSON)
 		if err != nil {
+			log.Error(err, log.Data{"error rendering the geography-list-page data from GeographyListpageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
@@ -225,69 +229,94 @@ func GeographyAreapageRender(rend RenderClient) http.HandlerFunc {
 		areaTypeID := vars["areaTypeID"]
 		datasetLabel := vars["datasetLabel"]
 		datasetID := vars["datasetID"]
+		AreaPageLink := `https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes/` + datasetID + `/datasets`
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes/` + datasetID + `/datasets`)
+		resp, err := http.Get(AreaPageLink)
 		if err != nil {
-			log.Error(err, log.Data{"test": "error http.Get"})
-			// log.Debug("error resp.StatusCode ", resp.StatusCode)
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + AreaPageLink + ") for GeographyAreapageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		if resp.StatusCode == 404 {
-			log.Error(err, log.Data{"test": "error resp"})
-			// fmt.Println("ERROR 404 not 500")
-			// setStatusCode(req, w, err) //<--error 500
-			// return
-		} else {
+			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + AreaPageLink + ") for GeographyAreapageRender returned ": resp.StatusCode})
+			setStatusCode404(req, w, err)
+			return
+		}
+		if err == nil {
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Error(err, log.Data{"test": "error Body"})
-				// log.Debug("error Body ", err)
+				log.Error(err, log.Data{"error getting the .Body data from the code-lists api http.Get(" + AreaPageLink + ") for GeographyAreapageRender .Body returned ": resp.Body})
 				setStatusCode(req, w, err)
 				return
 			}
 
-			var codelistresults models.CodeListResults
-			err = json.Unmarshal(b, &codelistresults)
+			var datasetlistresults models.DatasetListResults
+			err = json.Unmarshal(b, &datasetlistresults)
 			if err != nil {
-				log.Error(err, log.Data{"test": "error codelistresults"})
-				// log.Debug("error Unmarshal codelistresults ", err)
+				log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + AreaPageLink + ") for GeographyAreapageRender returned ": err})
 				setStatusCode(req, w, err)
 				return
 			}
-			var codelist models.CodeList
-			err = json.Unmarshal(b, &codelist)
+			var datasetlist models.DatasetList
+			err = json.Unmarshal(b, &datasetlist)
 			if err != nil {
-				log.Error(err, log.Data{"test": "error CodeList"})
-				// log.Debug("error Unmarshal codelist ", err)
+				log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + AreaPageLink + ") for GeographyAreapageRender returned ": err})
 				setStatusCode(req, w, err)
 				return
 			}
+
+			geographyDatasetLabel := ""
+			geographyDatasetID := ""
+			AreaPageMetadataLink := ""
 
 			var geographyTypes []geographyAreaPage.AreaType
-			for i := range codelistresults.Items {
+			for i := range datasetlistresults.Items {
 
-				if i >= 10 {
-					break
+				AreaPageMetadataLink = datasetlistresults.Items[i].Editions[0].Links.Latest.Href + `/metadata`
+
+				resp, err := http.Get(AreaPageMetadataLink)
+				if err != nil {
+					log.Error(err, log.Data{"error getting metadata from the code-lists api http.Get(" + AreaPageMetadataLink + ") for GeographyAreapageRender returned ": err})
+					setStatusCode(req, w, err)
+					return
+				}
+				b, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Error(err, log.Data{"error getting the .Body data from the code-lists api http.Get(" + AreaPageMetadataLink + ") for GeographyAreapageRender returned ": err})
+					setStatusCode(req, w, err)
+					return
+				}
+				var datasetmetadataresults models.DatasetMetadata
+				err = json.Unmarshal(b, &datasetmetadataresults)
+				if err != nil {
+					log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + AreaPageMetadataLink + ") for GeographyAreapageRender returned ": err})
+					setStatusCode(req, w, err)
+					return
 				}
 
-				// geographyTypes = append(geographyTypes, geographyAreaPage.AreaType{Label: codelistresults.Items[i].Links.Self.ID, ID: codelistresults.Items[i].editions[0].Links.Self.href})
-				geographyTypes = append(geographyTypes, geographyAreaPage.AreaType{Label: codelistresults.Items[i].Links.Self.ID, ID: codelistresults.Items[i].Links.Self.Href})
+				geographyDatasetLabel = datasetmetadataresults.Title
+				geographyDatasetID = datasetmetadataresults.Description
+				geographyTypes = append(geographyTypes, geographyAreaPage.AreaType{
+					Label: geographyDatasetLabel,
+					ID:    geographyDatasetID,
+				})
 			}
 
 			page.Data.AreaTypes = geographyTypes
-		} //if resp.StatusCode == 404
+		} //err == nil
 		page.Metadata.Title = areaTypeID
 		page.DatasetTitle = datasetLabel
 		page.DatasetId = datasetID
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
+			log.Error(err, log.Data{"error Marshaling the page data for GeographyAreapageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-area-page", templateJSON)
 		if err != nil {
+			log.Error(err, log.Data{"error rendering the geography-area-page data from GeographyAreapageRender returned ": err})
 			setStatusCode(req, w, err)
 			return
 		}
