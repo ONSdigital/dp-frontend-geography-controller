@@ -64,7 +64,7 @@ func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
-		homePageLink := `https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography
+		homePageLink := `https://api.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography
 
 		resp, err := http.Get(homePageLink)
 		if err != nil {
@@ -232,6 +232,7 @@ func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
 		})
 
 		page.Metadata.Title = titleMetadata.Items[0].Label
+		page.DatasetId = areaTypeID
 		page.Data.Items = geographyTypes
 
 		templateJSON, err := json.Marshal(page)
