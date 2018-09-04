@@ -12,10 +12,10 @@ import (
 
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
 )
 
 const dataEndpoint = `\/data$`
-const localAuthority = `?type=geography`
 
 var url = config.Get().CodeListsAPIURL
 
@@ -42,84 +42,71 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 	w.WriteHeader(status)
 }
 
-func setStatusCode404(req *http.Request, w http.ResponseWriter, err error) {
-	status := http.StatusNotFound
-	log.ErrorCtx(req.Context(), err, log.Data{"setting-response-status": status})
-	w.WriteHeader(status)
-}
-
 //GeographyHomepageRender ...
 func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
+		ctx := req.Context()
 
-		homePageLink := url + `/code-lists` + localAuthority
+		homePageLink := url + `/code-lists?type=geography`
 
 		resp, err := http.Get(homePageLink)
 		if err != nil {
-			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
-			log.Error(err, log.Data{"test": "error http.Get"})
+			err = errors.Wrap(err, "error rendering homepage - failed to get data from the code-lists api")
+			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
 			setStatusCode(req, w, err)
 			return
 		}
-		if resp.StatusCode == 404 {
-			log.Error(err, log.Data{"error getting data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": resp.StatusCode})
-			setStatusCode404(req, w, err)
-			return
-		}
+		defer resp.Body.Close()
+
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Error(err, log.Data{"error getting the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender .Body returned ": resp.Body})
+			err = errors.Wrap(err, "error reading the .Body data")
+			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
 			setStatusCode(req, w, err)
 			return
 		}
 		var codelistresults models.CodeListResults
 		err = json.Unmarshal(b, &codelistresults)
 		if err != nil {
-			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
-			setStatusCode(req, w, err)
-			return
-		}
-		var codelist models.CodeList
-		err = json.Unmarshal(b, &codelist)
-		if err != nil {
-			log.Error(err, log.Data{"error Unmarshaling the .Body data from the code-lists api http.Get(" + homePageLink + ") for GeographyHomepageRender returned ": err})
+			err = errors.Wrap(err, "error unmarshaling from .CodeListResults")
+			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
 			setStatusCode(req, w, err)
 			return
 		}
 
 		var geographyTypes []geographyHomepage.Items
-		geographyTypesLabel := ""
-		geographyTypesID := ""
 		for i := range codelistresults.Items {
-			log.Debug("for loop", log.Data{
-				"geographyTypesTest": codelistresults.Items[i],
-			})
 
-			geographyTypesID = codelistresults.Items[i].Links.Self.ID
+			geographyTypesID := codelistresults.Items[i].Links.Self.ID
+			typesListLink := codelistresults.Items[i].Links.Editions.Href
 
-			resp, err := http.Get(codelistresults.Items[i].Links.Editions.Href)
+			resp, err := http.Get(typesListLink)
 			if err != nil {
+				err = errors.Wrap(err, "error rendering geography types list - failed to get data from the code-lists api")
+				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
 				setStatusCode(req, w, err)
 				return
 			}
+			defer resp.Body.Close()
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
+				err = errors.Wrap(err, "error reading the .Body data")
+				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
 				setStatusCode(req, w, err)
 				return
 			}
 			var codelistresults models.CodeListResults
 			err = json.Unmarshal(b, &codelistresults)
 			if err != nil {
+				err = errors.Wrap(err, "error unmarshaling from .CodeListResults")
+				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
 				setStatusCode(req, w, err)
 				return
 			}
-			geographyTypesLabel = codelistresults.Items[0].Label
+			geographyTypesLabel := codelistresults.Items[0].Label
 			geographyTypes = append(geographyTypes, geographyHomepage.Items{Label: geographyTypesLabel, ID: geographyTypesID})
-			log.Debug("for loop", log.Data{
-				"geographyTypesLabel": geographyTypesLabel,
-			})
 		}
 
 		page.Data.Items = geographyTypes
@@ -127,13 +114,15 @@ func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.Error(err, log.Data{"error Marshaling the page data for GeographyHomepageRender returned ": err})
+			err = errors.Wrap(err, "error marshaling page data")
+			log.ErrorCtx(ctx, err, log.Data{"error": err})
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
 		if err != nil {
-			log.Error(err, log.Data{"error rendering the geography-homepage data from GeographyHomepageRender returned ": err})
+			err = errors.Wrap(err, "error rendering homepage")
+			log.ErrorCtx(ctx, err, log.Data{"error": err})
 			setStatusCode(req, w, err)
 			return
 		}
