@@ -9,6 +9,7 @@ import (
 
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
+	"github.com/ONSdigital/go-ns/clients/codelist"
 	"github.com/ONSdigital/go-ns/clients/renderer"
 	"github.com/ONSdigital/go-ns/handlers/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
@@ -25,13 +26,15 @@ func main() {
 
 	log.Namespace = "dp-frontend-geography-controller"
 
+	cli := codelist.New(cfg.CodeListsAPIURL)
+
 	router := mux.NewRouter()
 
 	rend := renderer.New(cfg.RendererURL)
 
 	router.StrictSlash(true).Path("/healthcheck").HandlerFunc(healthcheck.Handler)
 
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyHomepageRender(rend))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cli))
 
 	log.Info("Starting server", log.Data{
 		"bind_addr":         cfg.BindAddr,

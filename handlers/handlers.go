@@ -2,22 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-models/model/geographyHomepage"
 
-	"github.com/ONSdigital/dp-frontend-geography-controller/models"
-
+	"github.com/ONSdigital/go-ns/clients/codelist"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
 )
 
 const dataEndpoint = `\/data$`
-
-var url = config.Get().CodeListsAPIURL
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
@@ -42,74 +37,40 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 	w.WriteHeader(status)
 }
 
-//GeographyHomepageRender ...
-func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
+//HomepageRender ...
+func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		var page geographyHomepage.Page
 		ctx := req.Context()
+		var page geographyHomepage.Page
 
-		homePageLink := url + `/code-lists?type=geography`
-
-		resp, err := http.Get(homePageLink)
+		codeListResults, err := cli.GetCodelistData()
 		if err != nil {
-			err = errors.Wrap(err, "error rendering homepage - failed to get data from the code-lists api")
-			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
-			setStatusCode(req, w, err)
-			return
-		}
-		defer resp.Body.Close()
-
-		b, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			err = errors.Wrap(err, "error reading the .Body data")
-			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
-			setStatusCode(req, w, err)
-			return
-		}
-		var codelistresults models.CodeListResults
-		err = json.Unmarshal(b, &codelistresults)
-		if err != nil {
-			err = errors.Wrap(err, "error unmarshaling from .CodeListResults")
-			log.ErrorCtx(ctx, err, log.Data{"error": err, "url": homePageLink})
+			err = errors.Wrap(err, "error rendering homepage")
+			log.ErrorCtx(ctx, err, log.Data{"error": err})
 			setStatusCode(req, w, err)
 			return
 		}
 
-		var geographyTypes []geographyHomepage.Items
-		for i := range codelistresults.Items {
+		var Types []geographyHomepage.Items
+		for i := range codeListResults.Items {
 
-			geographyTypesID := codelistresults.Items[i].Links.Self.ID
-			typesListLink := codelistresults.Items[i].Links.Editions.Href
+			TypesID := codeListResults.Items[i].Links.Self.ID
+			editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
+			if err != nil {
+				err = errors.Wrap(err, "error rendering geography types list")
+				log.ErrorCtx(ctx, err, log.Data{"error": err})
+				setStatusCode(req, w, err)
+				return
+			}
 
-			resp, err := http.Get(typesListLink)
-			if err != nil {
-				err = errors.Wrap(err, "error rendering geography types list - failed to get data from the code-lists api")
-				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
-				setStatusCode(req, w, err)
-				return
-			}
-			defer resp.Body.Close()
-			b, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				err = errors.Wrap(err, "error reading the .Body data")
-				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
-				setStatusCode(req, w, err)
-				return
-			}
-			var codelistresults models.CodeListResults
-			err = json.Unmarshal(b, &codelistresults)
-			if err != nil {
-				err = errors.Wrap(err, "error unmarshaling from .CodeListResults")
-				log.ErrorCtx(ctx, err, log.Data{"error": err, "url": typesListLink})
-				setStatusCode(req, w, err)
-				return
-			}
-			geographyTypesLabel := codelistresults.Items[0].Label
-			geographyTypes = append(geographyTypes, geographyHomepage.Items{Label: geographyTypesLabel, ID: geographyTypesID})
+			Types = append(Types, geographyHomepage.Items{
+				Label: editionsListResults.Items[0].Label,
+				ID:    TypesID,
+			})
 		}
 
-		page.Data.Items = geographyTypes
+		page.Data.Items = Types
 		page.Metadata.Title = "Geography"
 
 		templateJSON, err := json.Marshal(page)
