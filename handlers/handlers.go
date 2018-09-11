@@ -46,44 +46,44 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 		codeListResults, err := cli.GetCodelistData()
 		if err != nil {
-			err = errors.Wrap(err, "error rendering homepage")
-			log.ErrorCtx(ctx, err, log.Data{"error": err})
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error geting code-lists data for geography"), nil)
 			setStatusCode(req, w, err)
 			return
 		}
 
-		var Types []geographyHomepage.Items
+		var types []geographyHomepage.Items
 		for i := range codeListResults.Items {
 
-			TypesID := codeListResults.Items[i].Links.Self.ID
+			typesID := codeListResults.Items[i].Links.Self.ID
 			editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
 			if err != nil {
-				err = errors.Wrap(err, "error rendering geography types list")
-				log.ErrorCtx(ctx, err, log.Data{"error": err})
+				log.ErrorCtx(ctx, errors.WithMessage(err, "error geting editions list from code-lists data"), nil)
 				setStatusCode(req, w, err)
 				return
 			}
 
-			Types = append(Types, geographyHomepage.Items{
-				Label: editionsListResults.Items[0].Label,
-				ID:    TypesID,
-			})
+			if editionsListResults.Items[0].Label != "" {
+				types = append(types, geographyHomepage.Items{
+					Label: editionsListResults.Items[0].Label,
+					ID:    typesID,
+				})
+			} else {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "editions label is undefined"), log.Data{"code_list_id": typesID})
+			}
 		}
 
-		page.Data.Items = Types
+		page.Data.Items = types
 		page.Metadata.Title = "Geography"
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			err = errors.Wrap(err, "error marshaling page data")
-			log.ErrorCtx(ctx, err, log.Data{"error": err})
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshaling page data"), nil)
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
 		if err != nil {
-			err = errors.Wrap(err, "error rendering homepage")
-			log.ErrorCtx(ctx, err, log.Data{"error": err})
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error rendering homepage"), nil)
 			setStatusCode(req, w, err)
 			return
 		}

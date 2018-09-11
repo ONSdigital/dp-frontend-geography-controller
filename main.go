@@ -26,7 +26,7 @@ func main() {
 
 	log.Namespace = "dp-frontend-geography-controller"
 
-	cli := codelist.New(cfg.CodeListsAPIURL)
+	cli := codelist.New(cfg.CodeListAPIURL)
 
 	router := mux.NewRouter()
 
@@ -37,9 +37,9 @@ func main() {
 	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cli))
 
 	log.Info("Starting server", log.Data{
-		"bind_addr":         cfg.BindAddr,
-		"renderer_url":      cfg.RendererURL,
-		"codelists_api_url": cfg.CodeListsAPIURL,
+		"bind_addr":        cfg.BindAddr,
+		"renderer_url":     cfg.RendererURL,
+		"codelist_api_url": cfg.CodeListAPIURL,
 	})
 
 	s := server.New(cfg.BindAddr, router)
