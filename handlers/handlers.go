@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"sync"
 
+	"github.com/ONSdigital/dp-frontend-geography-controller/models"
 	"github.com/ONSdigital/dp-frontend-models/model/geographyHomepage"
 
 	"github.com/ONSdigital/go-ns/clients/codelist"
@@ -52,25 +55,57 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		}
 
 		var types []geographyHomepage.Items
+		var wg sync.WaitGroup
+		var mutex = &sync.Mutex{}
 		for i := range codeListResults.Items {
+			fmt.Println("for start")
+			wg.Add(1)
+			go func(codeListResults models.CodeListResults, i int, cli *codelist.Client) {
 
-			typesID := codeListResults.Items[i].Links.Self.ID
-			editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
-			if err != nil {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "error geting editions list from code-lists data"), nil)
-				setStatusCode(req, w, err)
+				typesID := codeListResults.Items[i].Links.Self.ID
+				fmt.Println("typesID -- " + typesID)
+				editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
+				if err != nil {
+					return
+				}
+
+				if editionsListResults.Items[0].Label != "" {
+					fmt.Println("typesLabel -- " + editionsListResults.Items[0].Label)
+					mutex.Lock()
+					types = append(types, geographyHomepage.Items{
+						Label: editionsListResults.Items[0].Label,
+						ID:    typesID,
+					})
+					mutex.Unlock()
+				}
+
+				wg.Done()
 				return
-			}
+			}(codeListResults, i, cli)
 
-			if editionsListResults.Items[0].Label != "" {
-				types = append(types, geographyHomepage.Items{
-					Label: editionsListResults.Items[0].Label,
-					ID:    typesID,
-				})
-			} else {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "editions label is undefined"), log.Data{"code_list_id": typesID})
-			}
+			// defer test1234(codeListResults, i, cli)
+			fmt.Println("for end")
+
+			// typesID := codeListResults.Items[i].Links.Self.ID
+			// fmt.Println("typesID")
+			// editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
+			// if err != nil {
+			// 	log.ErrorCtx(ctx, errors.WithMessage(err, "error geting editions list from code-lists data"), nil)
+			// 	setStatusCode(req, w, err)
+			// 	return
+			// }
+
+			// if editionsListResults.Items[0].Label != "" {
+			// 	fmt.Println("typesLabel")
+			// 	types = append(types, geographyHomepage.Items{
+			// 		Label: editionsListResults.Items[0].Label,
+			// 		ID:    typesID,
+			// 	})
+			// } else {
+			// 	log.ErrorCtx(ctx, errors.WithMessage(err, "editions label is undefined"), log.Data{"code_list_id": typesID})
+			// }
 		}
+		wg.Wait()
 
 		page.Data.Items = types
 		page.Metadata.Title = "Geography"
@@ -91,4 +126,19 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		w.Write(templateHTML)
 		return
 	}
+}
+
+func test1234(codeListResults models.CodeListResults, i int, cli *codelist.Client) {
+
+	typesID := codeListResults.Items[i].Links.Self.ID
+	fmt.Println("typesID -- " + typesID)
+	editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
+	if err != nil {
+		return
+	}
+
+	if editionsListResults.Items[0].Label != "" {
+		fmt.Println("typesLabel -- " + editionsListResults.Items[0].Label)
+	}
+	return
 }
