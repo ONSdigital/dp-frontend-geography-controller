@@ -39,7 +39,7 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 	w.WriteHeader(status)
 }
 
-//HomepageRender ...
+//HomepageRender gets geography data from the code-list-api and formats for rendering
 func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -56,17 +56,17 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		var types []geographyHomepage.Items
 		var wg sync.WaitGroup
 		var mutex = &sync.Mutex{}
-		for i := range codeListResults.Items {
+		for _, v := range codeListResults.Items {
 			wg.Add(1)
-			go func(codeListResults models.CodeListResults, i int, cli *codelist.Client) {
+			go func(codeListResults models.CodeListResults, cli *codelist.Client, v models.CodeList) {
 
-				typesID := codeListResults.Items[i].Links.Self.ID
-				editionsListResults, err := cli.GetEditionslistData(codeListResults.Items[i].Links.Editions.Href)
+				typesID := v.Links.Self.ID
+				editionsListResults, err := cli.GetEditionslistData(v.Links.Editions.Href)
 				if err != nil {
 					return
 				}
 
-				if editionsListResults.Items[0].Label != "" {
+				if len(editionsListResults.Items) > 0 && editionsListResults.Items[0].Label != "" {
 					mutex.Lock()
 					types = append(types, geographyHomepage.Items{
 						Label: editionsListResults.Items[0].Label,
@@ -77,7 +77,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 				wg.Done()
 				return
-			}(codeListResults, i, cli)
+			}(codeListResults, cli, v)
 		}
 		wg.Wait()
 
