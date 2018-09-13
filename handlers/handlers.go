@@ -14,8 +14,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const dataEndpoint = `\/data$`
-
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
 	healthcheck.Client
