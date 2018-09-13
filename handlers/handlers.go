@@ -68,11 +68,11 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 				if len(editionsListResults.Items) > 0 && editionsListResults.Items[0].Label != "" {
 					mutex.Lock()
+					defer mutex.Unlock()
 					types = append(types, geographyHomepage.Items{
 						Label: editionsListResults.Items[0].Label,
 						ID:    typesID,
 					})
-					mutex.Unlock()
 				}
 				return
 			}(codeListResults, cli, v)
