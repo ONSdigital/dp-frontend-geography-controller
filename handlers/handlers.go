@@ -2,12 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/ONSdigital/dp-frontend-models/model/geographyHomepage"
+	"github.com/ONSdigital/dp-frontend-models/model/geographyListPage"
 
 	"github.com/ONSdigital/dp-frontend-geography-controller/models"
+
+	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/go-ns/common"
 	"github.com/ONSdigital/go-ns/healthcheck"
@@ -15,7 +19,7 @@ import (
 )
 
 const dataEndpoint = `\/data$`
-const localAuthority = `?type=geography`
+const typeGeography = `?type=geography`
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
@@ -48,13 +52,13 @@ func forwardFlorenceTokenIfRequired(req *http.Request) *http.Request {
 	return req
 }
 
-//GeographyRender ...
-func GeographyRender(rend RenderClient) http.HandlerFunc {
+//GeographyHomepageRender ...
+func GeographyHomepageRender(rend RenderClient) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var page geographyHomepage.Page
 
-		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + localAuthority)
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists` + typeGeography)
 		if err != nil {
 			setStatusCode(req, w, err)
 			return
@@ -83,14 +87,15 @@ func GeographyRender(rend RenderClient) http.HandlerFunc {
 				"geographyTypesTest": codelistresults.Items[i],
 			})
 
-			geographyTypes = geographyTypes + codelistresults.Items[i].Name
+			geographyTypes = geographyTypes + codelistresults.Items[i].Label
 
 		}
 
 		page.Data.AreaTypes = []geographyHomepage.AreaType{
-			{Name: "Countries"},
-			{Name: "Regions"},
-			{Name: geographyTypes},
+			{Label: "Countries", ID: "country"},
+			{Label: "Regions", ID: "region"},
+			{Label: "Local authorities", ID: "local-authority"},
+			{Label: geographyTypes},
 		}
 
 		page.Metadata.Title = "Geography"
@@ -101,6 +106,75 @@ func GeographyRender(rend RenderClient) http.HandlerFunc {
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		w.Write(templateHTML)
+		return
+	}
+}
+
+//GeographyListpageRender ...
+func GeographyListpageRender(rend RenderClient) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		var page geographyListPage.Page
+
+		vars := mux.Vars(req)
+		areaTypeID := vars["areaTypeID"]
+
+		resp, err := http.Get(`https://api.dev.cmd.onsdigital.co.uk/v1/code-lists/` + areaTypeID + `/editions/2016/codes`)
+		fmt.Println("error err", err)
+		fmt.Println("error resp.StatusCode", resp.StatusCode)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		if resp.StatusCode == 404 {
+			fmt.Println("ERROR 404 not 500")
+			setStatusCode(req, w, err) //<--error 500
+			return
+		}
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var codelistresults models.CodeListResults
+		err = json.Unmarshal(b, &codelistresults)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		var codelist models.CodeList
+		err = json.Unmarshal(b, &codelist)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var geographyTypes []geographyListPage.AreaType
+		for i := range codelistresults.Items {
+
+			if i >= 10 {
+				break
+			}
+
+			geographyTypes = append(geographyTypes, geographyListPage.AreaType{Label: codelistresults.Items[i].Label, ID: codelistresults.Items[i].ID})
+		}
+
+		page.Data.AreaTypes = geographyTypes
+		page.Metadata.Title = areaTypeID
+
+		templateJSON, err := json.Marshal(page)
+		if err != nil {
+			setStatusCode(req, w, err)
+			return
+		}
+		templateHTML, err := rend.Do("geography-list-page", templateJSON)
 		if err != nil {
 			setStatusCode(req, w, err)
 			return

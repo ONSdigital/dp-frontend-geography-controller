@@ -11,8 +11,8 @@ type CodeListResults struct {
 
 // CodeList containing links to all possible codes
 type CodeList struct {
-	ID    string       `json:"-"`
-	Name  string       `json:"name"`
+	ID    string       `json:"id"`
+	Label string       `json:"label"`
 	Links CodeListLink `json:"links"`
 }
 

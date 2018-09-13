@@ -31,7 +31,11 @@ func main() {
 
 	router.StrictSlash(true).Path("/healthcheck").HandlerFunc(healthcheck.Handler)
 
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyRender(rend))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.GeographyHomepageRender(rend))
+
+	router.StrictSlash(true).Path("/geography/{areaTypeID}").Methods("GET").HandlerFunc(handlers.GeographyListpageRender(rend))
+
+	router.StrictSlash(true).Path("/geography/{areaTypeID}/{datasetID").Methods("GET").HandlerFunc(handlers.GeographyListpageRender(rend))
 
 	log.Info("Starting server", log.Data{
 		"bind_addr":    cfg.BindAddr,
