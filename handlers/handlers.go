@@ -59,7 +59,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		for _, v := range codeListResults.Items {
 			wg.Add(1)
 			go func(codeListResults models.CodeListResults, cli *codelist.Client, v models.CodeList) {
-
+				defer wg.Done()
 				typesID := v.Links.Self.ID
 				editionsListResults, err := cli.GetEditionslistData(v.Links.Editions.Href)
 				if err != nil {
@@ -74,8 +74,6 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 					})
 					mutex.Unlock()
 				}
-
-				wg.Done()
 				return
 			}(codeListResults, cli, v)
 		}
