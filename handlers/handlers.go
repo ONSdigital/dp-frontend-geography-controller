@@ -82,6 +82,16 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 
 		page.Data.Items = types
 		page.Metadata.Title = "Geography"
+		page.Breadcrumb = []model.TaxonomyNode{
+			model.TaxonomyNode{
+				Title: "Home",
+				URI:   "https://www.ons.gov.uk",
+			},
+			model.TaxonomyNode{
+				Title: "Geography",
+				URI:   "/geography",
+			},
+		}
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
