@@ -54,7 +54,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 			return
 		}
 
-		var types []homepage.Items
+		var types []homepage.Item
 		var wg sync.WaitGroup
 		var mutex = &sync.Mutex{}
 		for _, v := range codeListResults.Items {
@@ -70,9 +70,10 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 				if len(editionsListResults.Items) > 0 && editionsListResults.Items[0].Label != "" {
 					mutex.Lock()
 					defer mutex.Unlock()
-					types = append(types, homepage.Items{
+					types = append(types, homepage.Item{
 						Label: editionsListResults.Items[0].Label,
 						ID:    typesID,
+						URI:   fmt.Sprintf("/geography/%s", typesID),
 					})
 				}
 				return
