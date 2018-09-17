@@ -148,6 +148,7 @@ func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 					pageCodes = append(pageCodes, list.Item{
 						ID:    codeItem.ID,
 						Label: codeItem.Label,
+						URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeItem.ID),
 					})
 				}
 				sort.Slice(pageCodes[:], func(i, j int) bool {
