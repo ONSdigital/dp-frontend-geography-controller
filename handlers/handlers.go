@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ONSdigital/dp-frontend-geography-controller/models"
 	"github.com/ONSdigital/dp-frontend-models/model/geographyHomepage"
 
 	"github.com/ONSdigital/go-ns/clients/codelist"
@@ -44,7 +43,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		ctx := req.Context()
 		var page geographyHomepage.Page
 
-		codeListResults, err := cli.GetCodelistData()
+		codeListResults, err := cli.GetGeographyCodeLists()
 		if err != nil {
 			log.ErrorCtx(ctx, errors.WithMessage(err, "error geting code-lists data for geography"), nil)
 			setStatusCode(req, w, err)
@@ -56,14 +55,13 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		var mutex = &sync.Mutex{}
 		for _, v := range codeListResults.Items {
 			wg.Add(1)
-			go func(codeListResults models.CodeListResults, cli *codelist.Client, v models.CodeList) {
+			go func(codeListResults codelist.CodeListResults, cli *codelist.Client, v codelist.CodeList) {
 				defer wg.Done()
 				typesID := v.Links.Self.ID
-				editionsListResults, err := cli.GetEditionslistData(v.Links.Editions.Href)
+				editionsListResults, err := cli.GetCodeListEditions(typesID)
 				if err != nil {
-					log.ErrorCtx(ctx, errors.WithMessage(err, "GET editions for a code-list"), log.Data{
-						"codeListID":   v.Links.Self.ID,
-						"editionsHref": v.Links.Editions.Href,
+					log.ErrorCtx(ctx, errors.WithMessage(err, "Error doing GET editions for code-list"), log.Data{
+						"codeListID": typesID,
 					})
 					return
 				}
