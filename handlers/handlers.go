@@ -61,6 +61,10 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 				typesID := v.Links.Self.ID
 				editionsListResults, err := cli.GetEditionslistData(v.Links.Editions.Href)
 				if err != nil {
+					log.ErrorCtx(ctx, errors.WithMessage(err, "GET editions for a code-list"), log.Data{
+						"codeListID":   v.Links.Self.ID,
+						"editionsHref": v.Links.Editions.Href,
+					})
 					return
 				}
 
