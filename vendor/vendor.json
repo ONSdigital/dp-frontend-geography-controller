@@ -9,6 +9,12 @@
 			"revisionTime": "2017-12-28T08:15:36Z"
 		},
 		{
+			"checksumSHA1": "ok/JFMOUWSGhB5qqEbSN3YOcIxI=",
+			"path": "github.com/ONSdigital/dp-frontend-models/model/geography/area",
+			"revision": "00c56f07fecc822e5e313203dbf6874aefff1c9e",
+			"revisionTime": "2018-09-17T08:39:39Z"
+		},
+		{
 			"checksumSHA1": "+hnBTMzP9F0NMoElPN6g7iCiPBo=",
 			"path": "github.com/ONSdigital/dp-frontend-models/model/geography/homepage",
 			"revision": "00c56f07fecc822e5e313203dbf6874aefff1c9e",
@@ -27,10 +33,16 @@
 			"revisionTime": "2018-09-10T14:21:29Z"
 		},
 		{
-			"checksumSHA1": "h+0kvy08h0mGEZ4wGe1ILVI151s=",
+			"checksumSHA1": "//vFM/hAVgDqzb/0oIv+q5GFIuk=",
 			"path": "github.com/ONSdigital/go-ns/clients/codelist",
-			"revision": "3c35362830769a678445e0b5b11bbfbd9d5781ec",
-			"revisionTime": "2018-09-14T13:49:50Z"
+			"revision": "de5db87b307733514431b66c413bed01d855607e",
+			"revisionTime": "2018-09-14T15:59:16Z"
+		},
+		{
+			"checksumSHA1": "6IIvZfPt8XWggzU4n/YK56ooAGY=",
+			"path": "github.com/ONSdigital/go-ns/clients/dataset",
+			"revision": "de5db87b307733514431b66c413bed01d855607e",
+			"revisionTime": "2018-09-14T15:59:16Z"
 		},
 		{
 			"checksumSHA1": "Pm1h3tasSTepT+k2/lEiXlrdveQ=",
