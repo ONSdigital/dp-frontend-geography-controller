@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"sync"
 
 	"github.com/ONSdigital/dp-frontend-models/model"
+	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
 	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/go-ns/clients/codelist"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
@@ -184,6 +187,114 @@ func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		templateHTML, err := rend.Do("geography-list", templateJSON)
 		if err != nil {
 			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of list of geographic areas"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+
+		w.Write(templateHTML)
+		return
+	}
+}
+
+//AreaPageRender ...
+func AreaPageRender(rend RenderClient, cli *codelist.Client, dcli *dataset.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		vars := mux.Vars(req)
+		codeListID := vars["codeListID"]
+		codeID := vars["codeID"]
+		logData := log.Data{
+			codeListID: codeListID,
+			codeID:     codeID,
+		}
+		var page area.Page
+
+		codeListEditions, err := cli.GetCodeListEditions(codeListID)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting editions for a code-list"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var parentName string
+
+		if codeListEditions.Count > 0 {
+			edition := codeListEditions.Items[0]
+			parentName = edition.Label
+
+			log.InfoCtx(ctx, "getting data about code", log.Data{"edition": edition})
+			codeData, err := cli.GetCodeByID(codeListID, edition.Edition, codeID)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting code data"), logData)
+				setStatusCode(req, w, err)
+				return
+			}
+			fmt.Printf("%+v\n", codeData)
+			page.Metadata.Title = codeData.Label
+
+			datasetsResp, err := cli.GetDatasetsByCode(codeListID, edition.Edition, codeID)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting datasets related to code"), logData)
+				setStatusCode(req, w, err)
+				return
+			}
+
+			if datasetsResp.Count > 0 {
+				var datasets []area.Dataset
+				for _, datasetResp := range datasetsResp.Datasets {
+					datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
+					if err != nil {
+						log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
+						setStatusCode(req, w, err)
+						return
+					}
+					datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
+					if err != nil {
+						log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
+						setStatusCode(req, w, err)
+						return
+					}
+					datasets = append(datasets, area.Dataset{
+						ID:          datasetResp.Editions[0].Links.Self.ID,
+						Label:       datasetDetails.Title,
+						Description: datasetDetails.Description,
+						URI:         datasetWebsiteURL.Path,
+					})
+				}
+				page.Data.Datasets = datasets
+			}
+		}
+
+		page.Data.Attributes.Code = codeID
+
+		page.Breadcrumb = []model.TaxonomyNode{
+			model.TaxonomyNode{
+				Title: "Home",
+				URI:   "https://www.ons.gov.uk",
+			},
+			model.TaxonomyNode{
+				Title: "Geography",
+				URI:   "/geography",
+			},
+			model.TaxonomyNode{
+				Title: parentName,
+				URI:   fmt.Sprintf("/geography/%s", codeListID),
+			},
+			model.TaxonomyNode{
+				Title: page.Metadata.Title,
+				URI:   fmt.Sprintf("/geography/%s", codeListID),
+			},
+		}
+
+		templateJSON, err := json.Marshal(page)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshalling geography area page data to JSON"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+		templateHTML, err := rend.Do("geography-area", templateJSON)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of geographic area page"), logData)
 			setStatusCode(req, w, err)
 			return
 		}
