@@ -9,6 +9,7 @@ type Config struct {
 	BindAddr       string `env:"BIND_ADDR"`
 	RendererURL    string `env:"RENDERER_URL"`
 	CodeListAPIURL string `env:"CODELIST_API_URL"`
+	DatasetAPIURL  string `env:"DATASET_API_URL"`
 }
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		BindAddr:       ":23700",
 		RendererURL:    "http://localhost:20010",
 		CodeListAPIURL: "http://localhost:22400",
+		DatasetAPIURL:  "http://localhost:22000",
 	}
 	err := gofigure.Gofigure(&cfg)
 	if err != nil {
