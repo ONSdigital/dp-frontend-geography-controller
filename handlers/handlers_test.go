@@ -10,7 +10,6 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
 	"github.com/ONSdigital/go-ns/clients/codelist"
-	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -21,9 +20,6 @@ func (e *testCliError) Error() string { return "client error" }
 func (e *testCliError) Code() int     { return http.StatusNotFound }
 
 func TestHandler(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	// ctx := gomock.Any()
 
 	Convey("test setStatusCode", t, func() {
 
@@ -169,5 +165,79 @@ func TestHandler(t *testing.T) {
 			})
 		})
 
+		Convey("return an error status if request to GET code-list's editions fails", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return bytes, nil
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetCodeListEditionsFunc: func(codeListID string) (codelist.EditionsListResults, error) {
+					return codelist.EditionsListResults{}, errors.New("Code-list %s not found")
+				},
+				GetCodesFunc: func(codeListID string, edition string) (codelist.CodesResults, error) {
+					return codelist.CodesResults{}, errors.New("Code-list %s not found")
+				},
+			}
+
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 500)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
+		})
+
+		Convey("return a 500 status if request to GET code-list's codes fails", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return bytes, nil
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetCodeListEditionsFunc: func(codeListID string) (codelist.EditionsListResults, error) {
+					return codelist.EditionsListResults{
+						Items: []codelist.EditionsList{
+							codelist.EditionsList{
+								Edition: "2018",
+								Label:   "Local authority districts",
+								Links:   codelist.EditionsListLink{},
+							},
+						},
+						Count:      1,
+						Offset:     0,
+						Limit:      1,
+						TotalCount: 1,
+					}, nil
+				},
+				GetCodesFunc: func(codeListID string, edition string) (codelist.CodesResults, error) {
+					return codelist.CodesResults{}, errors.New("Code-list %s not found")
+				},
+			}
+
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 500)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
+		})
+
+		Convey("returns an error status if rendering service isn't responding", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return nil, errors.New("Unrecognised payload format")
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetCodeListEditionsFunc: func(codeListID string) (codelist.EditionsListResults, error) {
+					return codelist.EditionsListResults{}, nil
+				},
+				GetCodesFunc: func(codeListID string, edition string) (codelist.CodesResults, error) {
+					return codelist.CodesResults{}, nil
+				},
+			}
+
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 500)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)
+		})
 	})
 }
