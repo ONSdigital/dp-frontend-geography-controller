@@ -170,8 +170,6 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			}
 		}
 
-		fmt.Printf("Page: %+v\n", codeListEditions.Count)
-
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",
