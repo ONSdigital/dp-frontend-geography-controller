@@ -18,6 +18,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CodeListClient is an interface with methods required for a code-list client
+type CodeListClient interface {
+	healthcheck.Client
+	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
+	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
+}
+
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
 	healthcheck.Client
@@ -116,7 +123,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 }
 
 //ListPageRender ...
-func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
+func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -162,6 +169,8 @@ func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 				page.Data.Items = pageCodes
 			}
 		}
+
+		fmt.Printf("Page: %+v\n", codeListEditions.Count)
 
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
