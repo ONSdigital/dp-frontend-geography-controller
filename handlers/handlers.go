@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,6 +29,12 @@ type CodeListClient interface {
 	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
 	GetCodeByID(codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
 	GetDatasetsByCode(codeListID string, edition string, codeID string) (datasets codelist.DatasetsResult, err error)
+}
+
+// DatasetClient is an interface with methods required for a dataset client
+type DatasetClient interface {
+	healthcheck.Client
+	Get(ctx context.Context, id string) (m dataset.Model, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
@@ -209,7 +216,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 }
 
 //AreaPageRender ...
-func AreaPageRender(rend RenderClient, cli CodeListClient, dcli *dataset.Client) http.HandlerFunc {
+func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -241,7 +248,6 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli *dataset.Client)
 				setStatusCode(req, w, err)
 				return
 			}
-			fmt.Printf("%+v\n", codeData)
 			page.Metadata.Title = codeData.Label
 
 			datasetsResp, err := cli.GetDatasetsByCode(codeListID, edition.Edition, codeID)
@@ -294,7 +300,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli *dataset.Client)
 			},
 			model.TaxonomyNode{
 				Title: page.Metadata.Title,
-				URI:   fmt.Sprintf("/geography/%s", codeListID),
+				URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeID),
 			},
 		}
 
