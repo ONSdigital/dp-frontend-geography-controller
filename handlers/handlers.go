@@ -21,6 +21,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CodeListClient is an interface with methods required for a code-list client
+type CodeListClient interface {
+	healthcheck.Client
+	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
+	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
+}
+
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
 	healthcheck.Client
@@ -67,6 +74,9 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 				typesID := v.Links.Self.ID
 				editionsListResults, err := cli.GetCodeListEditions(typesID)
 				if err != nil {
+					log.ErrorCtx(ctx, errors.WithMessage(err, "Error doing GET editions for code-list"), log.Data{
+						"codeListID": typesID,
+					})
 					return
 				}
 
@@ -115,8 +125,8 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 	}
 }
 
-//ListPageRender ...
-func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
+//ListPageRender renders a list of codes associated to the first edition of a code-list
+func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -138,7 +148,7 @@ func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 			page.Metadata.Title = edition.Label
 
 			log.InfoCtx(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
-			codesData, err := cli.GetCodes(codeListID, edition.Edition)
+			codes, err := cli.GetCodes(codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition
 				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting codes for an edition of a code-list"), logData)
@@ -146,13 +156,13 @@ func ListPageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 				return
 			}
 
-			if codesData.Count > 0 {
+			if codes.Count > 0 {
 				var pageCodes []list.Item
-				for _, codeItem := range codesData.Items {
+				for _, item := range codes.Items {
 					pageCodes = append(pageCodes, list.Item{
-						ID:    codeItem.ID,
-						Label: codeItem.Label,
-						URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeItem.ID),
+						ID:    item.ID,
+						Label: item.Label,
+						URI:   fmt.Sprintf("/geography/%s/%s", codeListID, item.ID),
 					})
 				}
 				sort.Slice(pageCodes[:], func(i, j int) bool {
