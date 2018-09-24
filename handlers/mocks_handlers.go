@@ -4,13 +4,17 @@
 package handlers
 
 import (
+	"context"
 	"github.com/ONSdigital/go-ns/clients/codelist"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"sync"
 )
 
 var (
+	lockCodeListClientMockGetCodeByID         sync.RWMutex
 	lockCodeListClientMockGetCodeListEditions sync.RWMutex
 	lockCodeListClientMockGetCodes            sync.RWMutex
+	lockCodeListClientMockGetDatasetsByCode   sync.RWMutex
 	lockCodeListClientMockHealthcheck         sync.RWMutex
 )
 
@@ -20,11 +24,17 @@ var (
 //
 //         // make and configure a mocked CodeListClient
 //         mockedCodeListClient := &CodeListClientMock{
+//             GetCodeByIDFunc: func(codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
+// 	               panic("TODO: mock out the GetCodeByID method")
+//             },
 //             GetCodeListEditionsFunc: func(codeListID string) (codelist.EditionsListResults, error) {
 // 	               panic("TODO: mock out the GetCodeListEditions method")
 //             },
 //             GetCodesFunc: func(codeListID string, edition string) (codelist.CodesResults, error) {
 // 	               panic("TODO: mock out the GetCodes method")
+//             },
+//             GetDatasetsByCodeFunc: func(codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
+// 	               panic("TODO: mock out the GetDatasetsByCode method")
 //             },
 //             HealthcheckFunc: func() (string, error) {
 // 	               panic("TODO: mock out the Healthcheck method")
@@ -36,17 +46,32 @@ var (
 //
 //     }
 type CodeListClientMock struct {
+	// GetCodeByIDFunc mocks the GetCodeByID method.
+	GetCodeByIDFunc func(codeListID string, edition string, codeID string) (codelist.CodeResult, error)
+
 	// GetCodeListEditionsFunc mocks the GetCodeListEditions method.
 	GetCodeListEditionsFunc func(codeListID string) (codelist.EditionsListResults, error)
 
 	// GetCodesFunc mocks the GetCodes method.
 	GetCodesFunc func(codeListID string, edition string) (codelist.CodesResults, error)
 
+	// GetDatasetsByCodeFunc mocks the GetDatasetsByCode method.
+	GetDatasetsByCodeFunc func(codeListID string, edition string, codeID string) (codelist.DatasetsResult, error)
+
 	// HealthcheckFunc mocks the Healthcheck method.
 	HealthcheckFunc func() (string, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// GetCodeByID holds details about calls to the GetCodeByID method.
+		GetCodeByID []struct {
+			// CodeListID is the codeListID argument value.
+			CodeListID string
+			// Edition is the edition argument value.
+			Edition string
+			// CodeID is the codeID argument value.
+			CodeID string
+		}
 		// GetCodeListEditions holds details about calls to the GetCodeListEditions method.
 		GetCodeListEditions []struct {
 			// CodeListID is the codeListID argument value.
@@ -59,10 +84,58 @@ type CodeListClientMock struct {
 			// Edition is the edition argument value.
 			Edition string
 		}
+		// GetDatasetsByCode holds details about calls to the GetDatasetsByCode method.
+		GetDatasetsByCode []struct {
+			// CodeListID is the codeListID argument value.
+			CodeListID string
+			// Edition is the edition argument value.
+			Edition string
+			// CodeID is the codeID argument value.
+			CodeID string
+		}
 		// Healthcheck holds details about calls to the Healthcheck method.
 		Healthcheck []struct {
 		}
 	}
+}
+
+// GetCodeByID calls GetCodeByIDFunc.
+func (mock *CodeListClientMock) GetCodeByID(codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
+	if mock.GetCodeByIDFunc == nil {
+		panic("CodeListClientMock.GetCodeByIDFunc: method is nil but CodeListClient.GetCodeByID was just called")
+	}
+	callInfo := struct {
+		CodeListID string
+		Edition    string
+		CodeID     string
+	}{
+		CodeListID: codeListID,
+		Edition:    edition,
+		CodeID:     codeID,
+	}
+	lockCodeListClientMockGetCodeByID.Lock()
+	mock.calls.GetCodeByID = append(mock.calls.GetCodeByID, callInfo)
+	lockCodeListClientMockGetCodeByID.Unlock()
+	return mock.GetCodeByIDFunc(codeListID, edition, codeID)
+}
+
+// GetCodeByIDCalls gets all the calls that were made to GetCodeByID.
+// Check the length with:
+//     len(mockedCodeListClient.GetCodeByIDCalls())
+func (mock *CodeListClientMock) GetCodeByIDCalls() []struct {
+	CodeListID string
+	Edition    string
+	CodeID     string
+} {
+	var calls []struct {
+		CodeListID string
+		Edition    string
+		CodeID     string
+	}
+	lockCodeListClientMockGetCodeByID.RLock()
+	calls = mock.calls.GetCodeByID
+	lockCodeListClientMockGetCodeByID.RUnlock()
+	return calls
 }
 
 // GetCodeListEditions calls GetCodeListEditionsFunc.
@@ -128,6 +201,45 @@ func (mock *CodeListClientMock) GetCodesCalls() []struct {
 	lockCodeListClientMockGetCodes.RLock()
 	calls = mock.calls.GetCodes
 	lockCodeListClientMockGetCodes.RUnlock()
+	return calls
+}
+
+// GetDatasetsByCode calls GetDatasetsByCodeFunc.
+func (mock *CodeListClientMock) GetDatasetsByCode(codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
+	if mock.GetDatasetsByCodeFunc == nil {
+		panic("CodeListClientMock.GetDatasetsByCodeFunc: method is nil but CodeListClient.GetDatasetsByCode was just called")
+	}
+	callInfo := struct {
+		CodeListID string
+		Edition    string
+		CodeID     string
+	}{
+		CodeListID: codeListID,
+		Edition:    edition,
+		CodeID:     codeID,
+	}
+	lockCodeListClientMockGetDatasetsByCode.Lock()
+	mock.calls.GetDatasetsByCode = append(mock.calls.GetDatasetsByCode, callInfo)
+	lockCodeListClientMockGetDatasetsByCode.Unlock()
+	return mock.GetDatasetsByCodeFunc(codeListID, edition, codeID)
+}
+
+// GetDatasetsByCodeCalls gets all the calls that were made to GetDatasetsByCode.
+// Check the length with:
+//     len(mockedCodeListClient.GetDatasetsByCodeCalls())
+func (mock *CodeListClientMock) GetDatasetsByCodeCalls() []struct {
+	CodeListID string
+	Edition    string
+	CodeID     string
+} {
+	var calls []struct {
+		CodeListID string
+		Edition    string
+		CodeID     string
+	}
+	lockCodeListClientMockGetDatasetsByCode.RLock()
+	calls = mock.calls.GetDatasetsByCode
+	lockCodeListClientMockGetDatasetsByCode.RUnlock()
 	return calls
 }
 
@@ -260,5 +372,111 @@ func (mock *RenderClientMock) HealthcheckCalls() []struct {
 	lockRenderClientMockHealthcheck.RLock()
 	calls = mock.calls.Healthcheck
 	lockRenderClientMockHealthcheck.RUnlock()
+	return calls
+}
+
+var (
+	lockDatasetClientMockGet         sync.RWMutex
+	lockDatasetClientMockHealthcheck sync.RWMutex
+)
+
+// DatasetClientMock is a mock implementation of DatasetClient.
+//
+//     func TestSomethingThatUsesDatasetClient(t *testing.T) {
+//
+//         // make and configure a mocked DatasetClient
+//         mockedDatasetClient := &DatasetClientMock{
+//             GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+// 	               panic("TODO: mock out the Get method")
+//             },
+//             HealthcheckFunc: func() (string, error) {
+// 	               panic("TODO: mock out the Healthcheck method")
+//             },
+//         }
+//
+//         // TODO: use mockedDatasetClient in code that requires DatasetClient
+//         //       and then make assertions.
+//
+//     }
+type DatasetClientMock struct {
+	// GetFunc mocks the Get method.
+	GetFunc func(ctx context.Context, id string) (dataset.Model, error)
+
+	// HealthcheckFunc mocks the Healthcheck method.
+	HealthcheckFunc func() (string, error)
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Get holds details about calls to the Get method.
+		Get []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// Healthcheck holds details about calls to the Healthcheck method.
+		Healthcheck []struct {
+		}
+	}
+}
+
+// Get calls GetFunc.
+func (mock *DatasetClientMock) Get(ctx context.Context, id string) (dataset.Model, error) {
+	if mock.GetFunc == nil {
+		panic("DatasetClientMock.GetFunc: method is nil but DatasetClient.Get was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	lockDatasetClientMockGet.Lock()
+	mock.calls.Get = append(mock.calls.Get, callInfo)
+	lockDatasetClientMockGet.Unlock()
+	return mock.GetFunc(ctx, id)
+}
+
+// GetCalls gets all the calls that were made to Get.
+// Check the length with:
+//     len(mockedDatasetClient.GetCalls())
+func (mock *DatasetClientMock) GetCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	lockDatasetClientMockGet.RLock()
+	calls = mock.calls.Get
+	lockDatasetClientMockGet.RUnlock()
+	return calls
+}
+
+// Healthcheck calls HealthcheckFunc.
+func (mock *DatasetClientMock) Healthcheck() (string, error) {
+	if mock.HealthcheckFunc == nil {
+		panic("DatasetClientMock.HealthcheckFunc: method is nil but DatasetClient.Healthcheck was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockDatasetClientMockHealthcheck.Lock()
+	mock.calls.Healthcheck = append(mock.calls.Healthcheck, callInfo)
+	lockDatasetClientMockHealthcheck.Unlock()
+	return mock.HealthcheckFunc()
+}
+
+// HealthcheckCalls gets all the calls that were made to Healthcheck.
+// Check the length with:
+//     len(mockedDatasetClient.HealthcheckCalls())
+func (mock *DatasetClientMock) HealthcheckCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockDatasetClientMockHealthcheck.RLock()
+	calls = mock.calls.Healthcheck
+	lockDatasetClientMockHealthcheck.RUnlock()
 	return calls
 }
