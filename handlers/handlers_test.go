@@ -24,7 +24,7 @@ func TestHandler(t *testing.T) {
 	Convey("test setStatusCode", t, func() {
 
 		Convey("test status code handles 404 response from client", func() {
-			req := httptest.NewRequest("GET", "/geography/local-authority", nil)
+			req := httptest.NewRequest("GET", "/foobar", nil)
 			w := httptest.NewRecorder()
 			err := &testCliError{}
 
@@ -34,7 +34,7 @@ func TestHandler(t *testing.T) {
 		})
 
 		Convey("test status code handles internal server error", func() {
-			req := httptest.NewRequest("GET", "/geography/local-authority", nil)
+			req := httptest.NewRequest("GET", "/foobar", nil)
 			w := httptest.NewRecorder()
 			err := errors.New("internal server error")
 
@@ -124,8 +124,7 @@ func TestHandler(t *testing.T) {
 			renderCall := mockRenderClient.DoCalls()[0]
 
 			var payload list.Page
-			err := json.Unmarshal(renderCall.In2, &payload)
-			if err != nil {
+			if err := json.Unmarshal(renderCall.In2, &payload); err != nil {
 				t.Errorf("Failed to unmarshal payload sent to renderer to relevant frontend model: %s", err)
 				return
 			}
@@ -219,7 +218,7 @@ func TestHandler(t *testing.T) {
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
 		})
 
-		Convey("returns an error status if rendering service isn't responding", func() {
+		Convey("return a 500 status if rendering service doesn't respond", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
 					return nil, errors.New("Unrecognised payload format")
