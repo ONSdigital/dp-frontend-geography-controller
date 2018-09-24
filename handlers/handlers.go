@@ -122,7 +122,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 	}
 }
 
-//ListPageRender ...
+//ListPageRender renders a list of codes associated to the first edition of a code-list
 func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
@@ -145,7 +145,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			page.Metadata.Title = edition.Label
 
 			log.InfoCtx(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
-			codesData, err := cli.GetCodes(codeListID, edition.Edition)
+			codes, err := cli.GetCodes(codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition
 				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting codes for an edition of a code-list"), logData)
@@ -153,13 +153,13 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 				return
 			}
 
-			if codesData.Count > 0 {
+			if codes.Count > 0 {
 				var pageCodes []list.Item
-				for _, codeItem := range codesData.Items {
+				for _, item := range codes.Items {
 					pageCodes = append(pageCodes, list.Item{
-						ID:    codeItem.ID,
-						Label: codeItem.Label,
-						URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeItem.ID),
+						ID:    item.ID,
+						Label: item.Label,
+						URI:   fmt.Sprintf("/geography/%s/%s", codeListID, item.ID),
 					})
 				}
 				sort.Slice(pageCodes[:], func(i, j int) bool {
