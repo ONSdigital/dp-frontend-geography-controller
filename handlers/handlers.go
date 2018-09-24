@@ -26,6 +26,8 @@ type CodeListClient interface {
 	healthcheck.Client
 	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
 	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
+	GetCodeByID(codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
+	GetDatasetsByCode(codeListID string, edition string, codeID string) (datasets codelist.DatasetsResult, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
@@ -207,7 +209,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 }
 
 //AreaPageRender ...
-func AreaPageRender(rend RenderClient, cli *codelist.Client, dcli *dataset.Client) http.HandlerFunc {
+func AreaPageRender(rend RenderClient, cli CodeListClient, dcli *dataset.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
