@@ -381,7 +381,7 @@ func TestHandler(t *testing.T) {
 			})
 		})
 
-		Convey("return an error status if request to GET code-list's editions fails", func() {
+		Convey("return a 500 status if request to GET code-list's editions fails", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
 					return bytes, nil
@@ -553,7 +553,7 @@ func TestHandler(t *testing.T) {
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
 		})
 
-		Convey("returns an error status if rendering service isn't responding", func() {
+		Convey("return a 500 status if rendering service isn't responding", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
 					return nil, errors.New("Unrecognised payload format")

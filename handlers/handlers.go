@@ -215,7 +215,8 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	}
 }
 
-//AreaPageRender ...
+//AreaPageRender gets data about a specific code, get what datasets are associated with the code and get information
+// about those datasets, maps it and passes it to the renderer
 func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
