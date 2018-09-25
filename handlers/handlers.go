@@ -260,26 +260,38 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 			if datasetsResp.Count > 0 {
 				var datasets []area.Dataset
+				var wg sync.WaitGroup
+				var mutex = &sync.Mutex{}
 				for _, datasetResp := range datasetsResp.Datasets {
-					datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
-					if err != nil {
-						log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
-						setStatusCode(req, w, err)
+					wg.Add(1)
+					go func(ctx context.Context, dcli DatasetClient, datasetResp codelist.Dataset) {
+						defer wg.Done()
+						datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
+						if err != nil {
+							log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
+							setStatusCode(req, w, err)
+							return
+						}
+						datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
+						if err != nil {
+							log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
+							setStatusCode(req, w, err)
+							return
+						}
+						if datasetResp.Editions[0].Links.Self.ID != "" {
+							mutex.Lock()
+							defer mutex.Unlock()
+							datasets = append(datasets, area.Dataset{
+								ID:          datasetResp.Editions[0].Links.Self.ID,
+								Label:       datasetDetails.Title,
+								Description: datasetDetails.Description,
+								URI:         datasetWebsiteURL.Path,
+							})
+						}
 						return
-					}
-					datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
-					if err != nil {
-						log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
-						setStatusCode(req, w, err)
-						return
-					}
-					datasets = append(datasets, area.Dataset{
-						ID:          datasetResp.Editions[0].Links.Self.ID,
-						Label:       datasetDetails.Title,
-						Description: datasetDetails.Description,
-						URI:         datasetWebsiteURL.Path,
-					})
+					}(ctx, dcli, datasetResp)
 				}
+				wg.Wait()
 				page.Data.Datasets = datasets
 			}
 		}
