@@ -262,36 +262,40 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 				var datasets []area.Dataset
 				var wg sync.WaitGroup
 				var mutex = &sync.Mutex{}
+				var gotErr bool
 				for _, datasetResp := range datasetsResp.Datasets {
 					wg.Add(1)
 					go func(ctx context.Context, dcli DatasetClient, datasetResp codelist.Dataset) {
 						defer wg.Done()
 						datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
 						if err != nil {
+							gotErr = true
 							log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
-							setStatusCode(req, w, err)
 							return
 						}
 						datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
 						if err != nil {
+							gotErr = true
 							log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
-							setStatusCode(req, w, err)
 							return
 						}
-						if datasetResp.Editions[0].Links.Self.ID != "" {
-							mutex.Lock()
-							defer mutex.Unlock()
-							datasets = append(datasets, area.Dataset{
-								ID:          datasetResp.Editions[0].Links.Self.ID,
-								Label:       datasetDetails.Title,
-								Description: datasetDetails.Description,
-								URI:         datasetWebsiteURL.Path,
-							})
-						}
+						mutex.Lock()
+						defer mutex.Unlock()
+						datasets = append(datasets, area.Dataset{
+							ID:          datasetResp.Editions[0].Links.Self.ID,
+							Label:       datasetDetails.Title,
+							Description: datasetDetails.Description,
+							URI:         datasetWebsiteURL.Path,
+						})
+
 						return
 					}(ctx, dcli, datasetResp)
 				}
 				wg.Wait()
+				if gotErr {
+					setStatusCode(req, w, err)
+					return
+				}
 				page.Data.Datasets = datasets
 			}
 		}
