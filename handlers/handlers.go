@@ -1,18 +1,22 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"sync"
 
 	"github.com/ONSdigital/dp-frontend-models/model"
+	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
 	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/go-ns/clients/codelist"
+	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/pkg/errors"
@@ -23,6 +27,14 @@ type CodeListClient interface {
 	healthcheck.Client
 	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
 	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
+	GetCodeByID(codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
+	GetDatasetsByCode(codeListID string, edition string, codeID string) (datasets codelist.DatasetsResult, err error)
+}
+
+// DatasetClient is an interface with methods required for a dataset client
+type DatasetClient interface {
+	healthcheck.Client
+	Get(ctx context.Context, id string) (m dataset.Model, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
@@ -194,6 +206,130 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		templateHTML, err := rend.Do("geography-list", templateJSON)
 		if err != nil {
 			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of list of geographic areas"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+
+		w.Write(templateHTML)
+		return
+	}
+}
+
+//AreaPageRender gets data about a specific code, get what datasets are associated with the code and get information
+// about those datasets, maps it and passes it to the renderer
+func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		vars := mux.Vars(req)
+		codeListID := vars["codeListID"]
+		codeID := vars["codeID"]
+		logData := log.Data{
+			codeListID: codeListID,
+			codeID:     codeID,
+		}
+		var page area.Page
+
+		codeListEditions, err := cli.GetCodeListEditions(codeListID)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting editions for a code-list"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+
+		var parentName string
+
+		if codeListEditions.Count > 0 {
+			edition := codeListEditions.Items[0]
+			parentName = edition.Label
+
+			log.InfoCtx(ctx, "getting data about code", log.Data{"edition": edition})
+			codeData, err := cli.GetCodeByID(codeListID, edition.Edition, codeID)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting code data"), logData)
+				setStatusCode(req, w, err)
+				return
+			}
+			page.Metadata.Title = codeData.Label
+
+			datasetsResp, err := cli.GetDatasetsByCode(codeListID, edition.Edition, codeID)
+			if err != nil {
+				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting datasets related to code"), logData)
+				setStatusCode(req, w, err)
+				return
+			}
+
+			if datasetsResp.Count > 0 {
+				var datasets []area.Dataset
+				var wg sync.WaitGroup
+				var mutex = &sync.Mutex{}
+				var gotErr bool
+				for _, datasetResp := range datasetsResp.Datasets {
+					wg.Add(1)
+					go func(ctx context.Context, dcli DatasetClient, datasetResp codelist.Dataset) {
+						defer wg.Done()
+						datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
+						if err != nil {
+							gotErr = true
+							log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
+							return
+						}
+						datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
+						if err != nil {
+							gotErr = true
+							log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
+							return
+						}
+						mutex.Lock()
+						defer mutex.Unlock()
+						datasets = append(datasets, area.Dataset{
+							ID:          datasetResp.Editions[0].Links.Self.ID,
+							Label:       datasetDetails.Title,
+							Description: datasetDetails.Description,
+							URI:         datasetWebsiteURL.Path,
+						})
+
+						return
+					}(ctx, dcli, datasetResp)
+				}
+				wg.Wait()
+				if gotErr {
+					setStatusCode(req, w, err)
+					return
+				}
+				page.Data.Datasets = datasets
+			}
+		}
+
+		page.Data.Attributes.Code = codeID
+
+		page.Breadcrumb = []model.TaxonomyNode{
+			model.TaxonomyNode{
+				Title: "Home",
+				URI:   "https://www.ons.gov.uk",
+			},
+			model.TaxonomyNode{
+				Title: "Geography",
+				URI:   "/geography",
+			},
+			model.TaxonomyNode{
+				Title: parentName,
+				URI:   fmt.Sprintf("/geography/%s", codeListID),
+			},
+			model.TaxonomyNode{
+				Title: page.Metadata.Title,
+				URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeID),
+			},
+		}
+
+		templateJSON, err := json.Marshal(page)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshalling geography area page data to JSON"), logData)
+			setStatusCode(req, w, err)
+			return
+		}
+		templateHTML, err := rend.Do("geography-area", templateJSON)
+		if err != nil {
+			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of geographic area page"), logData)
 			setStatusCode(req, w, err)
 			return
 		}
