@@ -44,6 +44,85 @@ func TestHandler(t *testing.T) {
 		})
 	})
 
+	Convey("test Homepage handler", t, func() {
+		req, _ := http.NewRequest("GET", "/geography", nil)
+		w := httptest.NewRecorder()
+		router := mux.NewRouter()
+
+		Convey("sends data to the correct renderer endpoint", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return bytes, nil
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetGeographyCodeListsFunc: func() (codelist.CodeListResults, error) {
+					return codelist.CodeListResults{}, nil
+				},
+			}
+
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			renderCall := mockRenderClient.DoCalls()[0]
+
+			So(renderCall.In1, ShouldEqual, "geography-homepage")
+		})
+
+		Convey("return a 404 status if request to GET code-list return's a 404", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return bytes, nil
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetGeographyCodeListsFunc: func() (codelist.CodeListResults, error) {
+					return codelist.CodeListResults{}, &testCliError{}
+				},
+			}
+
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 404)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
+		})
+
+		Convey("return a 500 status if request to GET code-list's codes fails", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return bytes, nil
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetGeographyCodeListsFunc: func() (codelist.CodeListResults, error) {
+					return codelist.CodeListResults{}, errors.New("Code-list %s not found")
+				},
+			}
+
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 500)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
+		})
+
+		Convey("return a 500 status if rendering service doesn't respond", func() {
+			mockRenderClient := &RenderClientMock{
+				DoFunc: func(path string, bytes []byte) ([]byte, error) {
+					return nil, errors.New("Unrecognised payload format")
+				},
+			}
+			mockCodeListClient := &CodeListClientMock{
+				GetGeographyCodeListsFunc: func() (codelist.CodeListResults, error) {
+					return codelist.CodeListResults{}, nil
+				},
+			}
+
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
+			router.ServeHTTP(w, req)
+			So(w.Code, ShouldEqual, 500)
+			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)
+		})
+	})
+
 	Convey("test list page handler", t, func() {
 		req, _ := http.NewRequest("GET", "/geography/local-authority", nil)
 		w := httptest.NewRecorder()

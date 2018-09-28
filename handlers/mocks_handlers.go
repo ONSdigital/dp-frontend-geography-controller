@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	lockCodeListClientMockGetCodeListEditions sync.RWMutex
-	lockCodeListClientMockGetCodes            sync.RWMutex
-	lockCodeListClientMockHealthcheck         sync.RWMutex
+	lockCodeListClientMockGetCodeListEditions   sync.RWMutex
+	lockCodeListClientMockGetCodes              sync.RWMutex
+	lockCodeListClientMockGetGeographyCodeLists sync.RWMutex
+	lockCodeListClientMockHealthcheck           sync.RWMutex
 )
 
 // CodeListClientMock is a mock implementation of CodeListClient.
@@ -25,6 +26,9 @@ var (
 //             },
 //             GetCodesFunc: func(codeListID string, edition string) (codelist.CodesResults, error) {
 // 	               panic("TODO: mock out the GetCodes method")
+//             },
+//             GetGeographyCodeListsFunc: func() (codelist.CodeListResults, error) {
+// 	               panic("TODO: mock out the GetGeographyCodeLists method")
 //             },
 //             HealthcheckFunc: func() (string, error) {
 // 	               panic("TODO: mock out the Healthcheck method")
@@ -42,6 +46,9 @@ type CodeListClientMock struct {
 	// GetCodesFunc mocks the GetCodes method.
 	GetCodesFunc func(codeListID string, edition string) (codelist.CodesResults, error)
 
+	// GetGeographyCodeListsFunc mocks the GetGeographyCodeLists method.
+	GetGeographyCodeListsFunc func() (codelist.CodeListResults, error)
+
 	// HealthcheckFunc mocks the Healthcheck method.
 	HealthcheckFunc func() (string, error)
 
@@ -58,6 +65,9 @@ type CodeListClientMock struct {
 			CodeListID string
 			// Edition is the edition argument value.
 			Edition string
+		}
+		// GetGeographyCodeLists holds details about calls to the GetGeographyCodeLists method.
+		GetGeographyCodeLists []struct {
 		}
 		// Healthcheck holds details about calls to the Healthcheck method.
 		Healthcheck []struct {
@@ -128,6 +138,32 @@ func (mock *CodeListClientMock) GetCodesCalls() []struct {
 	lockCodeListClientMockGetCodes.RLock()
 	calls = mock.calls.GetCodes
 	lockCodeListClientMockGetCodes.RUnlock()
+	return calls
+}
+
+// GetGeographyCodeLists calls GetGeographyCodeListsFunc.
+func (mock *CodeListClientMock) GetGeographyCodeLists() (codelist.CodeListResults, error) {
+	if mock.GetGeographyCodeListsFunc == nil {
+		panic("CodeListClientMock.GetGeographyCodeListsFunc: method is nil but CodeListClient.GetGeographyCodeLists was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockCodeListClientMockGetGeographyCodeLists.Lock()
+	mock.calls.GetGeographyCodeLists = append(mock.calls.GetGeographyCodeLists, callInfo)
+	lockCodeListClientMockGetGeographyCodeLists.Unlock()
+	return mock.GetGeographyCodeListsFunc()
+}
+
+// GetGeographyCodeListsCalls gets all the calls that were made to GetGeographyCodeLists.
+// Check the length with:
+//     len(mockedCodeListClient.GetGeographyCodeListsCalls())
+func (mock *CodeListClientMock) GetGeographyCodeListsCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockCodeListClientMockGetGeographyCodeLists.RLock()
+	calls = mock.calls.GetGeographyCodeLists
+	lockCodeListClientMockGetGeographyCodeLists.RUnlock()
 	return calls
 }
 
