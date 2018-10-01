@@ -25,6 +25,7 @@ import (
 // CodeListClient is an interface with methods required for a code-list client
 type CodeListClient interface {
 	healthcheck.Client
+	GetGeographyCodeLists() (editions codelist.CodeListResults, err error)
 	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
 	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
 	GetCodeByID(codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
@@ -61,7 +62,7 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 }
 
 //HomepageRender gets geography data from the code-list-api and formats for rendering
-func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
+func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		var page homepage.Page
@@ -78,7 +79,7 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 		var mutex = &sync.Mutex{}
 		for _, v := range codeListResults.Items {
 			wg.Add(1)
-			go func(codeListResults codelist.CodeListResults, cli *codelist.Client, v codelist.CodeList) {
+			go func(codeListResults codelist.CodeListResults, cli CodeListClient, v codelist.CodeList) {
 				defer wg.Done()
 				typesID := v.Links.Self.ID
 				editionsListResults, err := cli.GetCodeListEditions(typesID)
@@ -102,6 +103,10 @@ func HomepageRender(rend RenderClient, cli *codelist.Client) http.HandlerFunc {
 			}(codeListResults, cli, v)
 		}
 		wg.Wait()
+
+		sort.Slice(types, func(i, j int) bool {
+			return types[i].Label < types[j].Label
+		})
 
 		page.Data.Items = types
 		page.Metadata.Title = "Geography"
