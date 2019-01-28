@@ -87,11 +87,7 @@ job "dp-frontend-geography-controller" {
     }
 
     task "dp-frontend-geography-controller-publishing" {
-      driver = "exec"
-
-      artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-frontend-geography-controller/{{REVISION}}.tar.gz"
-      }
+      driver = "docker"
 
       artifact {
         source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-frontend-geography-controller/{{REVISION}}.tar.gz"
@@ -100,9 +96,13 @@ job "dp-frontend-geography-controller" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-        args = [
-          "${NOMAD_TASK_DIR}/dp-frontend-geography-controller",
-        ]
+        args = [“./dp-frontend-geography-controller”]
+
+        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+
+        port_map {
+          http = “${NOMAD_PORT_http}”
+        }
       }
 
       service {
