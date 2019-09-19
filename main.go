@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
-	"github.com/ONSdigital/go-ns/clients/codelist"
 	"github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/clients/renderer"
 	"github.com/ONSdigital/go-ns/handlers/healthcheck"

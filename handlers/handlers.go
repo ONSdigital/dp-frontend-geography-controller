@@ -13,23 +13,25 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
+	"github.com/ONSdigital/go-ns/common"
 	"github.com/gorilla/mux"
 
-	"github.com/ONSdigital/go-ns/clients/codelist"
-	"github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/codelist"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/pkg/errors"
+	"github.com/ONSdigital/log.go/log"
 )
+
+//go:generate moq -out mocks_handlers.go . CodeListClient RenderClient
 
 // CodeListClient is an interface with methods required for a code-list client
 type CodeListClient interface {
 	healthcheck.Client
-	GetGeographyCodeLists() (editions codelist.CodeListResults, err error)
-	GetCodeListEditions(codeListID string) (editions codelist.EditionsListResults, err error)
-	GetCodes(codeListID string, edition string) (codes codelist.CodesResults, err error)
-	GetCodeByID(codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
-	GetDatasetsByCode(codeListID string, edition string, codeID string) (datasets codelist.DatasetsResult, err error)
+	GetGeographyCodeLists(ctx context.Context, userAuthToken string, serviceAuthToken string) (editions codelist.CodeListResults, err error)
+	GetCodeListEditions(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (editions codelist.EditionsListResults, err error)
+	GetCodes(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codes codelist.CodesResults, err error)
+	GetCodeByID(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (code codelist.CodeResult, err error)
+	GetDatasetsByCode(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (datasets codelist.DatasetsResult, err error)
 }
 
 // DatasetClient is an interface with methods required for a dataset client
@@ -57,7 +59,8 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 			status = err.Code()
 		}
 	}
-	log.ErrorCtx(req.Context(), err, log.Data{"setting-response-status": status})
+
+	log.Event(req.Context(), "setting response status", log.Data{"status": status}, log.Error(err))
 	w.WriteHeader(status)
 }
 
@@ -67,9 +70,12 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		ctx := req.Context()
 		var page homepage.Page
 
-		codeListResults, err := cli.GetGeographyCodeLists()
+		serviceAuthToken := getServiceAuthToken(ctx, req)
+		userAuthToken := getUserAuthToken(ctx, req)
+
+		codeListResults, err := cli.GetGeographyCodeLists(ctx, userAuthToken, serviceAuthToken)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting geography code-lists"), nil)
+			log.Event(ctx, "error getting geography code-lists", log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
@@ -82,9 +88,9 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			go func(codeListResults codelist.CodeListResults, cli CodeListClient, v codelist.CodeList) {
 				defer wg.Done()
 				typesID := v.Links.Self.ID
-				editionsListResults, err := cli.GetCodeListEditions(typesID)
+				editionsListResults, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, typesID)
 				if err != nil {
-					log.ErrorCtx(ctx, errors.WithMessage(err, "Error doing GET editions for code-list"), log.Data{
+					log.Event(ctx, "Error doing GET editions for code-list", log.Error(err), log.Data{
 						"codeListID": typesID,
 					})
 					return
@@ -123,13 +129,13 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshaling geography code-lists page data"), nil)
+			log.Event(ctx, "error marshaling geography code-lists page data", log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error rendering homepage"), nil)
+			log.Event(ctx, "error rendering homepage", log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
@@ -149,10 +155,12 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			codeListID: codeListID,
 		}
 		var page list.Page
+		serviceAuthToken := "TODO"
+		userAuthToken := "also todo"
 
-		codeListEditions, err := cli.GetCodeListEditions(codeListID)
+		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting editions for a code-list"), logData)
+			log.Event(ctx, "error getting editions for a code-list", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -161,11 +169,11 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			edition := codeListEditions.Items[0]
 			page.Metadata.Title = edition.Label
 
-			log.InfoCtx(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
-			codes, err := cli.GetCodes(codeListID, edition.Edition)
+			log.Event(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
+			codes, err := cli.GetCodes(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition
-				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting codes for an edition of a code-list"), logData)
+				log.Event(ctx, "error getting codes for an edition of a code-list", log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
@@ -204,13 +212,13 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshalling geography list page data to JSON"), logData)
+			log.Event(ctx, "error marshalling geography list page data to JSON", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-list", templateJSON)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of list of geographic areas"), logData)
+			log.Event(ctx, "error getting HTML of list of geographic areas", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -233,10 +241,12 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 			codeID:     codeID,
 		}
 		var page area.Page
+		serviceAuthToken := "TODO"
+		userAuthToken := "also todo"
 
-		codeListEditions, err := cli.GetCodeListEditions(codeListID)
+		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting editions for a code-list"), logData)
+			log.Event(ctx, "error getting editions for a code-list", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -247,18 +257,18 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 			edition := codeListEditions.Items[0]
 			parentName = edition.Label
 
-			log.InfoCtx(ctx, "getting data about code", log.Data{"edition": edition})
-			codeData, err := cli.GetCodeByID(codeListID, edition.Edition, codeID)
+			log.Event(ctx, "getting data about code", log.Data{"edition": edition})
+			codeData, err := cli.GetCodeByID(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition, codeID)
 			if err != nil {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting code data"), logData)
+				log.Event(ctx, "error getting code data", log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
 			page.Metadata.Title = codeData.Label
 
-			datasetsResp, err := cli.GetDatasetsByCode(codeListID, edition.Edition, codeID)
+			datasetsResp, err := cli.GetDatasetsByCode(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition, codeID)
 			if err != nil {
-				log.ErrorCtx(ctx, errors.WithMessage(err, "error getting datasets related to code"), logData)
+				log.Event(ctx, "error getting datasets related to code", log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
@@ -275,13 +285,13 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 						datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
 						if err != nil {
 							gotErr = true
-							log.ErrorCtx(ctx, errors.WithMessage(err, "error getting dataset"), logData)
+							log.Event(ctx, "error getting dataset", log.Error(err), logData)
 							return
 						}
 						datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
 						if err != nil {
 							gotErr = true
-							log.ErrorCtx(ctx, errors.WithMessage(err, "error parsing dataset href"), logData)
+							log.Event(ctx, "error parsing dataset href", log.Error(err), logData)
 							return
 						}
 						mutex.Lock()
@@ -328,13 +338,13 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error marshalling geography area page data to JSON"), logData)
+			log.Event(ctx, "error marshalling geography area page data to JSON", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-area", templateJSON)
 		if err != nil {
-			log.ErrorCtx(ctx, errors.WithMessage(err, "error getting HTML of geographic area page"), logData)
+			log.Event(ctx, "error getting HTML of geographic area page", log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -342,4 +352,22 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		w.Write(templateHTML)
 		return
 	}
+}
+
+func getUserAuthToken(ctx context.Context, req *http.Request) string {
+	token := req.Header.Get(common.FlorenceHeaderKey)
+	if len(token) > 0 {
+		return token
+	}
+
+	cookie, err := req.Cookie(common.FlorenceCookieKey)
+	if err != nil {
+		log.Event(ctx, "error getting access token cookie from request", log.Error(err))
+		return ""
+	}
+	return cookie.Value
+}
+
+func getServiceAuthToken(ctx context.Context, req *http.Request) string {
+	return req.Header.Get(common.AuthHeaderKey)
 }

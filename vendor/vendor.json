@@ -3,6 +3,18 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "Z698w7I6Crs4gGGgpfswuecI5Ic=",
+			"path": "github.com/ONSdigital/dp-api-clients-go/codelist",
+			"revision": "088ae6505959c82580628fb72f0b87fce6d91126",
+			"revisionTime": "2019-09-18T12:31:41Z"
+		},
+		{
+			"checksumSHA1": "2mCpDc3DkWDWTVQKH7llBx3coaI=",
+			"path": "github.com/ONSdigital/dp-api-clients-go/dataset",
+			"revision": "088ae6505959c82580628fb72f0b87fce6d91126",
+			"revisionTime": "2019-09-18T12:31:41Z"
+		},
+		{
 			"checksumSHA1": "QDHWtVBYrIsLSMqgwJy57QpcbsY=",
 			"path": "github.com/ONSdigital/dp-frontend-models/model",
 			"revision": "cb4e58dfd37eb1aa358e2b0e096aa74e1d0f07dd",
@@ -33,22 +45,16 @@
 			"revisionTime": "2018-09-10T14:21:29Z"
 		},
 		{
-			"checksumSHA1": "//vFM/hAVgDqzb/0oIv+q5GFIuk=",
-			"path": "github.com/ONSdigital/go-ns/clients/codelist",
-			"revision": "7a152e7ef64110e48b5daf58121532c0b0e04075",
-			"revisionTime": "2018-09-24T09:42:45Z"
-		},
-		{
 			"checksumSHA1": "Pm1h3tasSTepT+k2/lEiXlrdveQ=",
 			"path": "github.com/ONSdigital/go-ns/clients/renderer",
 			"revision": "491470a66fbb2471ff3fd02f8159b7158d9281ab",
 			"revisionTime": "2018-06-07T13:26:14Z"
 		},
 		{
-			"checksumSHA1": "WSj2jaJp2epEer5qSp1QnTCJuTg=",
+			"checksumSHA1": "IV6CmyPxZnOlkVCcXXYVuBwUz+I=",
 			"path": "github.com/ONSdigital/go-ns/common",
-			"revision": "924dcec425ab8affbd88fabd17f4bcff0442a7bc",
-			"revisionTime": "2018-09-10T14:21:29Z"
+			"revision": "dacf81e5819b9521c3c4c7db92bca01a0e964a23",
+			"revisionTime": "2019-09-17T09:20:21Z"
 		},
 		{
 			"checksumSHA1": "ei+/RCSa0XO9v9rQxAh0uqyJ/28=",
@@ -135,10 +141,10 @@
 			"revisionTime": "2017-05-02T19:22:41Z"
 		},
 		{
-			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
+			"checksumSHA1": "cIiyvAduLLFvu+tg1Qr5Jw3jeWo=",
 			"path": "github.com/jtolds/gls",
-			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
-			"revisionTime": "2017-05-03T22:40:06Z"
+			"revision": "b4936e06046bbecbb94cae9c18127ebe510a2cb9",
+			"revisionTime": "2018-11-10T20:28:10Z"
 		},
 		{
 			"checksumSHA1": "OBvAHqWjdI4NQVAqTkcQAdTuCFY=",
