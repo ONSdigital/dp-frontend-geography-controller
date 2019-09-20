@@ -6,6 +6,7 @@ package handlers
 import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"sync"
 )
 
@@ -498,5 +499,111 @@ func (mock *RenderClientMock) HealthcheckCalls() []struct {
 	lockRenderClientMockHealthcheck.RLock()
 	calls = mock.calls.Healthcheck
 	lockRenderClientMockHealthcheck.RUnlock()
+	return calls
+}
+
+var (
+	lockDatasetClientMockGet         sync.RWMutex
+	lockDatasetClientMockHealthcheck sync.RWMutex
+)
+
+// DatasetClientMock is a mock implementation of DatasetClient.
+//
+//     func TestSomethingThatUsesDatasetClient(t *testing.T) {
+//
+//         // make and configure a mocked DatasetClient
+//         mockedDatasetClient := &DatasetClientMock{
+//             GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+// 	               panic("TODO: mock out the Get method")
+//             },
+//             HealthcheckFunc: func() (string, error) {
+// 	               panic("TODO: mock out the Healthcheck method")
+//             },
+//         }
+//
+//         // TODO: use mockedDatasetClient in code that requires DatasetClient
+//         //       and then make assertions.
+//
+//     }
+type DatasetClientMock struct {
+	// GetFunc mocks the Get method.
+	GetFunc func(ctx context.Context, id string) (dataset.Model, error)
+
+	// HealthcheckFunc mocks the Healthcheck method.
+	HealthcheckFunc func() (string, error)
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Get holds details about calls to the Get method.
+		Get []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// ID is the id argument value.
+			ID string
+		}
+		// Healthcheck holds details about calls to the Healthcheck method.
+		Healthcheck []struct {
+		}
+	}
+}
+
+// Get calls GetFunc.
+func (mock *DatasetClientMock) Get(ctx context.Context, id string) (dataset.Model, error) {
+	if mock.GetFunc == nil {
+		panic("moq: DatasetClientMock.GetFunc is nil but DatasetClient.Get was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+		ID  string
+	}{
+		Ctx: ctx,
+		ID:  id,
+	}
+	lockDatasetClientMockGet.Lock()
+	mock.calls.Get = append(mock.calls.Get, callInfo)
+	lockDatasetClientMockGet.Unlock()
+	return mock.GetFunc(ctx, id)
+}
+
+// GetCalls gets all the calls that were made to Get.
+// Check the length with:
+//     len(mockedDatasetClient.GetCalls())
+func (mock *DatasetClientMock) GetCalls() []struct {
+	Ctx context.Context
+	ID  string
+} {
+	var calls []struct {
+		Ctx context.Context
+		ID  string
+	}
+	lockDatasetClientMockGet.RLock()
+	calls = mock.calls.Get
+	lockDatasetClientMockGet.RUnlock()
+	return calls
+}
+
+// Healthcheck calls HealthcheckFunc.
+func (mock *DatasetClientMock) Healthcheck() (string, error) {
+	if mock.HealthcheckFunc == nil {
+		panic("moq: DatasetClientMock.HealthcheckFunc is nil but DatasetClient.Healthcheck was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockDatasetClientMockHealthcheck.Lock()
+	mock.calls.Healthcheck = append(mock.calls.Healthcheck, callInfo)
+	lockDatasetClientMockHealthcheck.Unlock()
+	return mock.HealthcheckFunc()
+}
+
+// HealthcheckCalls gets all the calls that were made to Healthcheck.
+// Check the length with:
+//     len(mockedDatasetClient.HealthcheckCalls())
+func (mock *DatasetClientMock) HealthcheckCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockDatasetClientMockHealthcheck.RLock()
+	calls = mock.calls.Healthcheck
+	lockDatasetClientMockHealthcheck.RUnlock()
 	return calls
 }

@@ -22,7 +22,7 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
-//go:generate moq -out mocks_handlers.go . CodeListClient RenderClient
+//go:generate moq -out mocks_handlers.go . CodeListClient RenderClient DatasetClient
 
 // CodeListClient is an interface with methods required for a code-list client
 type CodeListClient interface {
@@ -58,9 +58,8 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 		if err.Code() == http.StatusNotFound {
 			status = err.Code()
 		}
+		log.Event(req.Context(), "setting response status", log.Data{"status": status}, log.Error(err))
 	}
-
-	log.Event(req.Context(), "setting response status", log.Data{"status": status}, log.Error(err))
 	w.WriteHeader(status)
 }
 
@@ -155,8 +154,8 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			codeListID: codeListID,
 		}
 		var page list.Page
-		serviceAuthToken := "TODO"
-		userAuthToken := "also todo"
+		serviceAuthToken := getServiceAuthToken(ctx, req)
+		userAuthToken := getUserAuthToken(ctx, req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
@@ -241,8 +240,9 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 			codeID:     codeID,
 		}
 		var page area.Page
-		serviceAuthToken := "TODO"
-		userAuthToken := "also todo"
+
+		serviceAuthToken := getServiceAuthToken(ctx, req)
+		userAuthToken := getUserAuthToken(ctx, req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
@@ -316,25 +316,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		}
 
 		page.Data.Attributes.Code = codeID
-
-		page.Breadcrumb = []model.TaxonomyNode{
-			model.TaxonomyNode{
-				Title: "Home",
-				URI:   "https://www.ons.gov.uk",
-			},
-			model.TaxonomyNode{
-				Title: "Geography",
-				URI:   "/geography",
-			},
-			model.TaxonomyNode{
-				Title: parentName,
-				URI:   fmt.Sprintf("/geography/%s", codeListID),
-			},
-			model.TaxonomyNode{
-				Title: page.Metadata.Title,
-				URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeID),
-			},
-		}
+		page.Breadcrumb = getAreaPageRenderBreadcrumb(parentName, page.Metadata.Title, codeListID, codeID)
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
@@ -354,6 +336,27 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 	}
 }
 
+func getAreaPageRenderBreadcrumb(parentName string, pageTitle string, codeListID string, codeID string) []model.TaxonomyNode {
+	return []model.TaxonomyNode{
+		model.TaxonomyNode{
+			Title: "Home",
+			URI:   "https://www.ons.gov.uk",
+		},
+		model.TaxonomyNode{
+			Title: "Geography",
+			URI:   "/geography",
+		},
+		model.TaxonomyNode{
+			Title: parentName,
+			URI:   fmt.Sprintf("/geography/%s", codeListID),
+		},
+		model.TaxonomyNode{
+			Title: pageTitle,
+			URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeID),
+		},
+	}
+}
+
 func getUserAuthToken(ctx context.Context, req *http.Request) string {
 	token := req.Header.Get(common.FlorenceHeaderKey)
 	if len(token) > 0 {
@@ -361,7 +364,9 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 	}
 
 	cookie, err := req.Cookie(common.FlorenceCookieKey)
-	if err != nil {
+	if err != nil && err == http.ErrNoCookie {
+		return ""
+	} else if err != nil {
 		log.Event(ctx, "error getting access token cookie from request", log.Error(err))
 		return ""
 	}
