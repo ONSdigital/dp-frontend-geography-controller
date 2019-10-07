@@ -9,6 +9,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ONSdigital/dp-api-clients-go/headers"
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
@@ -37,7 +38,7 @@ type CodeListClient interface {
 // DatasetClient is an interface with methods required for a dataset client
 type DatasetClient interface {
 	healthcheck.Client
-	Get(ctx context.Context, id string) (m dataset.Model, err error)
+	Get(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID string) (m dataset.Model, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
@@ -235,12 +236,14 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		vars := mux.Vars(req)
 		codeListID := vars["codeListID"]
 		codeID := vars["codeID"]
+		collectionID := vars["codeID"]
+
 		logData := log.Data{
 			codeListID: codeListID,
 			codeID:     codeID,
 		}
-		var page area.Page
 
+		var page area.Page
 		serviceAuthToken := getServiceAuthToken(ctx, req)
 		userAuthToken := getUserAuthToken(ctx, req)
 
@@ -282,7 +285,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 					wg.Add(1)
 					go func(ctx context.Context, dcli DatasetClient, datasetResp codelist.Dataset) {
 						defer wg.Done()
-						datasetDetails, err := dcli.Get(ctx, datasetResp.Links.Self.ID)
+						datasetDetails, err := dcli.Get(ctx, userAuthToken, serviceAuthToken, collectionID, datasetResp.Links.Self.ID)
 						if err != nil {
 							gotErr = true
 							log.Event(ctx, "error getting dataset", log.Error(err), logData)
@@ -358,8 +361,8 @@ func getAreaPageRenderBreadcrumb(parentName string, pageTitle string, codeListID
 }
 
 func getUserAuthToken(ctx context.Context, req *http.Request) string {
-	token := req.Header.Get(common.FlorenceHeaderKey)
-	if len(token) > 0 {
+	token, err := headers.GetUserAuthToken(req)
+	if err == nil {
 		return token
 	}
 
@@ -374,5 +377,6 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 }
 
 func getServiceAuthToken(ctx context.Context, req *http.Request) string {
-	return req.Header.Get(common.AuthHeaderKey)
+	token, _ := headers.GetServiceAuthToken(req)
+	return token
 }

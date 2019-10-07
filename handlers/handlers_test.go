@@ -10,6 +10,7 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/headers"
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
@@ -30,7 +31,7 @@ func (e *testCliError) Code() int     { return http.StatusNotFound }
 
 func assertAuthTokens(actualUserToken, actualServiceToken string) {
 	So(actualUserToken, ShouldEqual, userAccessToken)
-	So(actualServiceToken, ShouldEqual, common.BearerPrefix+serviceAccessToken)
+	So(actualServiceToken, ShouldEqual, serviceAccessToken)
 }
 
 func TestHandler(t *testing.T) {
@@ -60,8 +61,8 @@ func TestHandler(t *testing.T) {
 
 	Convey("test Homepage handler", t, func() {
 		req, _ := http.NewRequest("GET", "/geography", nil)
-		common.AddFlorenceHeader(req, userAccessToken)
-		common.AddServiceTokenHeader(req, serviceAccessToken)
+		headers.SetUserAuthToken(req, userAccessToken)
+		headers.SetServiceAuthToken(req, serviceAccessToken)
 
 		w := httptest.NewRecorder()
 		router := mux.NewRouter()
@@ -162,8 +163,8 @@ func TestHandler(t *testing.T) {
 
 	Convey("test list page handler", t, func() {
 		req, _ := http.NewRequest("GET", "/geography/local-authority", nil)
-		common.AddFlorenceHeader(req, userAccessToken)
-		common.AddServiceTokenHeader(req, serviceAccessToken)
+		headers.SetUserAuthToken(req, userAccessToken)
+		headers.SetServiceAuthToken(req, serviceAccessToken)
 		w := httptest.NewRecorder()
 		router := mux.NewRouter()
 
@@ -406,8 +407,8 @@ func TestHandler(t *testing.T) {
 func TestAreaPageRender(t *testing.T) {
 	Convey("test area page handler", t, func() {
 		req, _ := http.NewRequest("GET", "/geography/local-authority/E07000223", nil)
-		common.AddFlorenceHeader(req, userAccessToken)
-		common.AddServiceTokenHeader(req, serviceAccessToken)
+		headers.SetUserAuthToken(req, userAccessToken)
+		headers.SetServiceAuthToken(req, serviceAccessToken)
 		w := httptest.NewRecorder()
 		router := mux.NewRouter()
 
@@ -429,7 +430,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, nil
 				},
 			}
@@ -504,7 +505,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{
 						Description: "Test dataset description",
 						Title:       "Test dataset title",
@@ -585,7 +586,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, nil
 				},
 			}
@@ -638,7 +639,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, nil
 				},
 			}
@@ -692,7 +693,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, nil
 				},
 			}
@@ -767,7 +768,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, errors.New("Dataset %s not found")
 				},
 			}
@@ -811,7 +812,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
 					return dataset.Model{}, nil
 				},
 			}
@@ -839,11 +840,11 @@ func TestAreaPageRender(t *testing.T) {
 func TestGetUserAuthToken(t *testing.T) {
 	Convey("should return X-Florence-Token value", t, func() {
 		r, err := http.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
-		r.Header.Set(common.FlorenceHeaderKey, common.FlorenceHeaderKey)
+		headers.SetUserAuthToken(r, userAccessToken)
 		So(err, ShouldBeNil)
 
 		actual := getUserAuthToken(nil, r)
-		So(actual, ShouldEqual, common.FlorenceHeaderKey)
+		So(actual, ShouldEqual, userAccessToken)
 	})
 
 	Convey("should return access_token cookie value", t, func() {

@@ -513,7 +513,7 @@ var (
 //
 //         // make and configure a mocked DatasetClient
 //         mockedDatasetClient := &DatasetClientMock{
-//             GetFunc: func(ctx context.Context, id string) (dataset.Model, error) {
+//             GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.Model, error) {
 // 	               panic("TODO: mock out the Get method")
 //             },
 //             HealthcheckFunc: func() (string, error) {
@@ -527,7 +527,7 @@ var (
 //     }
 type DatasetClientMock struct {
 	// GetFunc mocks the Get method.
-	GetFunc func(ctx context.Context, id string) (dataset.Model, error)
+	GetFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.Model, error)
 
 	// HealthcheckFunc mocks the Healthcheck method.
 	HealthcheckFunc func() (string, error)
@@ -538,8 +538,14 @@ type DatasetClientMock struct {
 		Get []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// ID is the id argument value.
-			ID string
+			// UserAuthToken is the userAuthToken argument value.
+			UserAuthToken string
+			// ServiceAuthToken is the serviceAuthToken argument value.
+			ServiceAuthToken string
+			// CollectionID is the collectionID argument value.
+			CollectionID string
+			// DatasetID is the datasetID argument value.
+			DatasetID string
 		}
 		// Healthcheck holds details about calls to the Healthcheck method.
 		Healthcheck []struct {
@@ -548,33 +554,45 @@ type DatasetClientMock struct {
 }
 
 // Get calls GetFunc.
-func (mock *DatasetClientMock) Get(ctx context.Context, id string) (dataset.Model, error) {
+func (mock *DatasetClientMock) Get(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.Model, error) {
 	if mock.GetFunc == nil {
 		panic("moq: DatasetClientMock.GetFunc is nil but DatasetClient.Get was just called")
 	}
 	callInfo := struct {
-		Ctx context.Context
-		ID  string
+		Ctx              context.Context
+		UserAuthToken    string
+		ServiceAuthToken string
+		CollectionID     string
+		DatasetID        string
 	}{
-		Ctx: ctx,
-		ID:  id,
+		Ctx:              ctx,
+		UserAuthToken:    userAuthToken,
+		ServiceAuthToken: serviceAuthToken,
+		CollectionID:     collectionID,
+		DatasetID:        datasetID,
 	}
 	lockDatasetClientMockGet.Lock()
 	mock.calls.Get = append(mock.calls.Get, callInfo)
 	lockDatasetClientMockGet.Unlock()
-	return mock.GetFunc(ctx, id)
+	return mock.GetFunc(ctx, userAuthToken, serviceAuthToken, collectionID, datasetID)
 }
 
 // GetCalls gets all the calls that were made to Get.
 // Check the length with:
 //     len(mockedDatasetClient.GetCalls())
 func (mock *DatasetClientMock) GetCalls() []struct {
-	Ctx context.Context
-	ID  string
+	Ctx              context.Context
+	UserAuthToken    string
+	ServiceAuthToken string
+	CollectionID     string
+	DatasetID        string
 } {
 	var calls []struct {
-		Ctx context.Context
-		ID  string
+		Ctx              context.Context
+		UserAuthToken    string
+		ServiceAuthToken string
+		CollectionID     string
+		DatasetID        string
 	}
 	lockDatasetClientMockGet.RLock()
 	calls = mock.calls.Get
