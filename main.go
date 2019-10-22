@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/codelist"
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/renderer"
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
-	"github.com/ONSdigital/go-ns/clients/codelist"
-	"github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/clients/renderer"
 	"github.com/ONSdigital/go-ns/handlers/healthcheck"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
@@ -28,7 +28,7 @@ func main() {
 	log.Namespace = "dp-frontend-geography-controller"
 
 	cli := codelist.New(cfg.CodeListAPIURL)
-	dcli := dataset.NewAPIClient(cfg.DatasetAPIURL, "", "")
+	dcli := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
 	router := mux.NewRouter()
 

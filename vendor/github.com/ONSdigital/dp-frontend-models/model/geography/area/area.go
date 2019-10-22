@@ -14,6 +14,7 @@ type GeographyAreaPage struct {
 	Attributes Attribute `json:"attributes"`
 }
 
+// Dataset represents each dataset related to specific code
 type Dataset struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
@@ -21,6 +22,7 @@ type Dataset struct {
 	URI         string `json:"uri"`
 }
 
+// Attribute represents each attribute related to specific code
 type Attribute struct {
 	Code        string `json:"code"`
 	ReleaseDate string `json:"release_date"`
