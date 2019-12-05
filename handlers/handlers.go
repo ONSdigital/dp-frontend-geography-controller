@@ -115,6 +115,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		})
 
 		page.Data.Items = types
+		page.BetaBannerEnabled = true
 		page.Metadata.Title = "Geography"
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
@@ -194,7 +195,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 				page.Data.Items = pageCodes
 			}
 		}
-
+		page.BetaBannerEnabled = true
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",
@@ -319,6 +320,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		}
 
 		page.Data.Attributes.Code = codeID
+		page.BetaBannerEnabled = true
 		page.Breadcrumb = getAreaPageRenderBreadcrumb(parentName, page.Metadata.Title, codeListID, codeID)
 
 		templateJSON, err := json.Marshal(page)
