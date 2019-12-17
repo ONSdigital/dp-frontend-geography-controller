@@ -35,8 +35,8 @@ func main() {
 	rend := renderer.New(cfg.RendererURL)
 
 	router.StrictSlash(true).Path("/healthcheck").HandlerFunc(healthcheck.Handler)
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cli))
-	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cli))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cli, cfg.EnableLoop11))
+	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cli, cfg.EnableLoop11))
 	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(rend, cli, dcli))
 
 	log.Info("Starting server", log.Data{

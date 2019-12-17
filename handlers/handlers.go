@@ -65,7 +65,7 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 }
 
 //HomepageRender gets geography data from the code-list-api and formats for rendering
-func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
+func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		var page homepage.Page
@@ -117,6 +117,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		page.Data.Items = types
 		page.BetaBannerEnabled = true
 		page.Metadata.Title = "Geography"
+		page.EnableLoop11 = enableLoop11
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",
@@ -147,7 +148,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 }
 
 //ListPageRender renders a list of codes associated to the first edition of a code-list
-func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
+func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -196,6 +197,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			}
 		}
 		page.BetaBannerEnabled = true
+		page.EnableLoop11 = enableLoop11
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",

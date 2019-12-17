@@ -10,6 +10,7 @@ type Config struct {
 	RendererURL    string `env:"RENDERER_URL"`
 	CodeListAPIURL string `env:"CODELIST_API_URL"`
 	DatasetAPIURL  string `env:"DATASET_API_URL"`
+	EnableLoop11   bool   `env:"ENABLE_LOOP11"`
 }
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 		RendererURL:    "http://localhost:20010",
 		CodeListAPIURL: "http://localhost:22400",
 		DatasetAPIURL:  "http://localhost:22000",
+		EnableLoop11:   false,
 	}
 	err := gofigure.Gofigure(&cfg)
 	if err != nil {
