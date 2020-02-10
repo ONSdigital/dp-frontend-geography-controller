@@ -19,7 +19,6 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -27,7 +26,6 @@ import (
 
 // CodeListClient is an interface with methods required for a code-list client
 type CodeListClient interface {
-	healthcheck.Client
 	GetGeographyCodeLists(ctx context.Context, userAuthToken string, serviceAuthToken string) (editions codelist.CodeListResults, err error)
 	GetCodeListEditions(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (editions codelist.EditionsListResults, err error)
 	GetCodes(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codes codelist.CodesResults, err error)
@@ -37,13 +35,11 @@ type CodeListClient interface {
 
 // DatasetClient is an interface with methods required for a dataset client
 type DatasetClient interface {
-	healthcheck.Client
-	Get(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID string) (m dataset.Model, err error)
+	Get(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID string) (m dataset.DatasetDetails, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
-	healthcheck.Client
 	Do(string, []byte) ([]byte, error)
 }
 
