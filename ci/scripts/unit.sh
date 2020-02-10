@@ -1,7 +1,7 @@
 #!/bin/bash -eux
 
-export GOPATH=$(pwd)/go
+cwd=$(pwd)
 
-pushd $GOPATH/src/github.com/ONSdigital/dp-frontend-geography-controller
+pushd $cwd/dp-frontend-geography-controller
   make test
 popd
