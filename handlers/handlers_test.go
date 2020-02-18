@@ -431,8 +431,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, nil
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, nil
 				},
 			}
 
@@ -506,8 +506,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{
 						Description: "Test dataset description",
 						Title:       "Test dataset title",
 					}, nil
@@ -587,8 +587,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, nil
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, nil
 				},
 			}
 
@@ -640,8 +640,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, nil
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, nil
 				},
 			}
 
@@ -694,8 +694,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, nil
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, nil
 				},
 			}
 
@@ -769,8 +769,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, errors.New("Dataset %s not found")
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, errors.New("Dataset %s not found")
 				},
 			}
 
@@ -813,8 +813,8 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
-				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.Model, e error) {
-					return dataset.Model{}, nil
+				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
+					return dataset.DatasetDetails{}, nil
 				},
 			}
 
