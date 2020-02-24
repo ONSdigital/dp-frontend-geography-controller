@@ -43,7 +43,7 @@ func main() {
 
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "error getting configuration", log.Error(err))
+		log.Event(ctx, "error getting configuration", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 	log.Event(ctx, "config on startup", log.Data{"config": cfg})
@@ -54,7 +54,7 @@ func main() {
 		Version,
 	)
 	if err != nil {
-		log.Event(ctx, "failed to create service version information", log.Error(err))
+		log.Event(ctx, "failed to create service version information", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
@@ -79,7 +79,7 @@ func main() {
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil {
-			log.Event(ctx, "error starting http server", log.Error(err))
+			log.Event(ctx, "error starting http server", log.ERROR, log.Error(err))
 			os.Exit(2)
 		}
 	}()
@@ -89,20 +89,20 @@ func main() {
 	// Block until a fatal error occurs
 	select {
 	case signal := <-signals:
-		log.Event(ctx, "quitting after os signal received", log.Data{"signal": signal})
+		log.Event(ctx, "quitting after os signal received", log.INFO, log.Data{"signal": signal})
 	}
 
-	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout))
+	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
 
 	// give the app `Timeout` seconds to close gracefully before killing it.
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
 	go func() {
-		log.Event(ctx, "stop health checkers")
+		log.Event(ctx, "stop health checkers", log.INFO)
 		hc.Stop()
 
 		if err := s.Shutdown(ctx); err != nil {
-			log.Event(ctx, "failed to gracefully shutdown http server", log.Error(err))
+			log.Event(ctx, "failed to gracefully shutdown http server", log.ERROR, log.Error(err))
 		}
 
 		cancel() // stop timer
@@ -111,9 +111,9 @@ func main() {
 	// wait for timeout or success (via cancel)
 	<-ctx.Done()
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Event(ctx, "context deadline exceeded", log.Error(ctx.Err()))
+		log.Event(ctx, "context deadline exceeded", log.WARN, log.Error(ctx.Err()))
 	} else {
-		log.Event(ctx, "graceful shutdown complete", log.Data{"context": ctx.Err()})
+		log.Event(ctx, "graceful shutdown complete", log.INFO, log.Data{"context": ctx.Err()})
 	}
 
 	os.Exit(0)
@@ -121,15 +121,15 @@ func main() {
 
 func registerCheckers(ctx context.Context, h *health.HealthCheck, c *codelist.Client, d *dataset.Client, r *renderer.Renderer) (err error) {
 	if err = h.AddCheck("codelist API", c.Checker); err != nil {
-		log.Event(ctx, "failed to add codelist API checker", log.Error(err))
+		log.Event(ctx, "failed to add codelist API checker", log.ERROR, log.Error(err))
 	}
 
 	if err = h.AddCheck("dataset API", d.Checker); err != nil {
-		log.Event(ctx, "failed to add dataset API checker", log.Error(err))
+		log.Event(ctx, "failed to add dataset API checker", log.ERROR, log.Error(err))
 	}
 
 	if err = h.AddCheck("frontend renderer", r.Checker); err != nil {
-		log.Event(ctx, "failed to add frontend renderer checker", log.Error(err))
+		log.Event(ctx, "failed to add frontend renderer checker", log.ERROR, log.Error(err))
 	}
 
 	return
