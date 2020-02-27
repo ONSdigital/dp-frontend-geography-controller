@@ -19,7 +19,6 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -27,7 +26,6 @@ import (
 
 // CodeListClient is an interface with methods required for a code-list client
 type CodeListClient interface {
-	healthcheck.Client
 	GetGeographyCodeLists(ctx context.Context, userAuthToken string, serviceAuthToken string) (editions codelist.CodeListResults, err error)
 	GetCodeListEditions(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (editions codelist.EditionsListResults, err error)
 	GetCodes(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codes codelist.CodesResults, err error)
@@ -37,13 +35,11 @@ type CodeListClient interface {
 
 // DatasetClient is an interface with methods required for a dataset client
 type DatasetClient interface {
-	healthcheck.Client
-	Get(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID string) (m dataset.Model, err error)
+	Get(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, datasetID string) (m dataset.DatasetDetails, err error)
 }
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
-	healthcheck.Client
 	Do(string, []byte) ([]byte, error)
 }
 
@@ -59,7 +55,7 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 		if err.Code() == http.StatusNotFound {
 			status = err.Code()
 		}
-		log.Event(req.Context(), "setting response status", log.Data{"status": status}, log.Error(err))
+		log.Event(req.Context(), "setting response status", log.ERROR, log.Error(err), log.Data{"status": status})
 	}
 	w.WriteHeader(status)
 }
@@ -75,7 +71,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 
 		codeListResults, err := cli.GetGeographyCodeLists(ctx, userAuthToken, serviceAuthToken)
 		if err != nil {
-			log.Event(ctx, "error getting geography code-lists", log.Error(err))
+			log.Event(ctx, "error getting geography code-lists", log.ERROR, log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
@@ -90,7 +86,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 				typesID := v.Links.Self.ID
 				editionsListResults, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, typesID)
 				if err != nil {
-					log.Event(ctx, "Error doing GET editions for code-list", log.Error(err), log.Data{
+					log.Event(ctx, "Error doing GET editions for code-list", log.ERROR, log.Error(err), log.Data{
 						"codeListID": typesID,
 					})
 					return
@@ -131,13 +127,13 @@ func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.Event(ctx, "error marshaling geography code-lists page data", log.Error(err))
+			log.Event(ctx, "error marshaling geography code-lists page data", log.ERROR, log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-homepage", templateJSON)
 		if err != nil {
-			log.Event(ctx, "error rendering homepage", log.Error(err))
+			log.Event(ctx, "error rendering homepage", log.ERROR, log.Error(err))
 			setStatusCode(req, w, err)
 			return
 		}
@@ -162,7 +158,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
-			log.Event(ctx, "error getting editions for a code-list", log.Error(err), logData)
+			log.Event(ctx, "error getting editions for a code-list", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -175,7 +171,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 			codes, err := cli.GetCodes(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition
-				log.Event(ctx, "error getting codes for an edition of a code-list", log.Error(err), logData)
+				log.Event(ctx, "error getting codes for an edition of a code-list", log.ERROR, log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
@@ -215,13 +211,13 @@ func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.Event(ctx, "error marshalling geography list page data to JSON", log.Error(err), logData)
+			log.Event(ctx, "error marshalling geography list page data to JSON", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-list", templateJSON)
 		if err != nil {
-			log.Event(ctx, "error getting HTML of list of geographic areas", log.Error(err), logData)
+			log.Event(ctx, "error getting HTML of list of geographic areas", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -252,7 +248,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
-			log.Event(ctx, "error getting editions for a code-list", log.Error(err), logData)
+			log.Event(ctx, "error getting editions for a code-list", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -263,10 +259,10 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 			edition := codeListEditions.Items[0]
 			parentName = edition.Label
 
-			log.Event(ctx, "getting data about code", log.Data{"edition": edition})
+			log.Event(ctx, "getting data about code", log.INFO, log.Data{"edition": edition})
 			codeData, err := cli.GetCodeByID(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition, codeID)
 			if err != nil {
-				log.Event(ctx, "error getting code data", log.Error(err), logData)
+				log.Event(ctx, "error getting code data", log.ERROR, log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
@@ -274,7 +270,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 			datasetsResp, err := cli.GetDatasetsByCode(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition, codeID)
 			if err != nil {
-				log.Event(ctx, "error getting datasets related to code", log.Error(err), logData)
+				log.Event(ctx, "error getting datasets related to code", log.ERROR, log.Error(err), logData)
 				setStatusCode(req, w, err)
 				return
 			}
@@ -291,13 +287,13 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 						datasetDetails, err := dcli.Get(ctx, userAuthToken, serviceAuthToken, collectionID, datasetResp.Links.Self.ID)
 						if err != nil {
 							gotErr = true
-							log.Event(ctx, "error getting dataset", log.Error(err), logData)
+							log.Event(ctx, "error getting dataset", log.ERROR, log.Error(err), logData)
 							return
 						}
 						datasetWebsiteURL, err := url.Parse(datasetResp.Editions[0].Links.LatestVersion.Href)
 						if err != nil {
 							gotErr = true
-							log.Event(ctx, "error parsing dataset href", log.Error(err), logData)
+							log.Event(ctx, "error parsing dataset href", log.ERROR, log.Error(err), logData)
 							return
 						}
 						mutex.Lock()
@@ -327,13 +323,13 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 		templateJSON, err := json.Marshal(page)
 		if err != nil {
-			log.Event(ctx, "error marshalling geography area page data to JSON", log.Error(err), logData)
+			log.Event(ctx, "error marshalling geography area page data to JSON", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
 		templateHTML, err := rend.Do("geography-area", templateJSON)
 		if err != nil {
-			log.Event(ctx, "error getting HTML of geographic area page", log.Error(err), logData)
+			log.Event(ctx, "error getting HTML of geographic area page", log.ERROR, log.Error(err), logData)
 			setStatusCode(req, w, err)
 			return
 		}
@@ -374,7 +370,7 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 	if err != nil && err == http.ErrNoCookie {
 		return ""
 	} else if err != nil {
-		log.Event(ctx, "error getting access token cookie from request", log.Error(err))
+		log.Event(ctx, "error getting access token cookie from request", log.ERROR, log.Error(err))
 		return ""
 	}
 	return cookie.Value
