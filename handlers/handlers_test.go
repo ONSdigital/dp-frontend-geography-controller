@@ -22,7 +22,6 @@ import (
 var (
 	userAccessToken    = "Blackened is the end Winter it will send"
 	serviceAccessToken = "Death of mother earth Never a rebirth Evolution's end Never will it mend never"
-	disabledLoop11     = false
 )
 
 type testCliError struct{}
@@ -80,7 +79,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -104,7 +103,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -128,7 +127,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -151,7 +150,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)
@@ -184,7 +183,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -248,7 +247,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -318,7 +317,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -359,7 +358,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -389,7 +388,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)

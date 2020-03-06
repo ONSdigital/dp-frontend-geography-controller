@@ -70,8 +70,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.StrictSlash(true).Path("/health").HandlerFunc(hc.Handler)
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cc, cfg.EnableLoop11))
-	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cc, cfg.EnableLoop11))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cc))
+	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cc))
 	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(rend, cc, dc))
 
 	s := server.New(cfg.BindAddr, router)

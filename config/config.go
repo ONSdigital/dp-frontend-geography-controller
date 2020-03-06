@@ -14,7 +14,6 @@ type Config struct {
 	RendererURL                string        `envconfig:"RENDERER_URL"`
 	CodeListAPIURL             string        `envconfig:"CODELIST_API_URL"`
 	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
-	EnableLoop11               bool          `envconfig:"ENABLE_LOOP11"`
 	GracefulShutdownTimeout    time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
@@ -29,7 +28,6 @@ func Get() (cfg *Config, err error) {
 		RendererURL:                "http://localhost:20010",
 		CodeListAPIURL:             "http://localhost:22400",
 		DatasetAPIURL:              "http://localhost:22000",
-		EnableLoop11:               false,
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        10 * time.Second,
 		HealthCheckCriticalTimeout: time.Minute,
