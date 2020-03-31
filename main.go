@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/smtp"
 	"os"
@@ -70,8 +71,8 @@ func main() {
 	router := mux.NewRouter()
 
 	router.StrictSlash(true).Path("/health").HandlerFunc(hc.Handler)
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cc, cfg.EnableLoop11))
-	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cc, cfg.EnableLoop11))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cc))
+	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cc))
 	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(rend, cc, dc))
 
 	s := server.New(cfg.BindAddr, router)
@@ -120,17 +121,26 @@ func main() {
 }
 
 func registerCheckers(ctx context.Context, h *health.HealthCheck, c *codelist.Client, d *dataset.Client, r *renderer.Renderer) (err error) {
+
+	hasErrors := false
+
 	if err = h.AddCheck("codelist API", c.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "failed to add codelist API checker", log.ERROR, log.Error(err))
 	}
 
 	if err = h.AddCheck("dataset API", d.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "failed to add dataset API checker", log.ERROR, log.Error(err))
 	}
 
 	if err = h.AddCheck("frontend renderer", r.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "failed to add frontend renderer checker", log.ERROR, log.Error(err))
 	}
 
-	return
+	if hasErrors {
+		return errors.New("Error(s) registering checkers for healthcheck")
+	}
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/ONSdigital/dp-api-clients-go/headers"
+	"github.com/ONSdigital/dp-cookies/cookies"
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
@@ -61,7 +62,7 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 }
 
 //HomepageRender gets geography data from the code-list-api and formats for rendering
-func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) http.HandlerFunc {
+func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		var page homepage.Page
@@ -110,10 +111,10 @@ func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 			return types[i].Label < types[j].Label
 		})
 
+		mapCookiePreferences(req, &page.Page.CookiesPreferencesSet, &page.Page.CookiesPolicy)
 		page.Data.Items = types
 		page.BetaBannerEnabled = true
 		page.Metadata.Title = "Geography"
-		page.EnableLoop11 = enableLoop11
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",
@@ -144,7 +145,7 @@ func HomepageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 }
 
 //ListPageRender renders a list of codes associated to the first edition of a code-list
-func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) http.HandlerFunc {
+func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -192,8 +193,8 @@ func ListPageRender(rend RenderClient, cli CodeListClient, enableLoop11 bool) ht
 				page.Data.Items = pageCodes
 			}
 		}
+		mapCookiePreferences(req, &page.CookiesPreferencesSet, &page.CookiesPolicy)
 		page.BetaBannerEnabled = true
-		page.EnableLoop11 = enableLoop11
 		page.Breadcrumb = []model.TaxonomyNode{
 			model.TaxonomyNode{
 				Title: "Home",
@@ -317,6 +318,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 			}
 		}
 
+		mapCookiePreferences(req, &page.Page.CookiesPreferencesSet, &page.Page.CookiesPolicy)
 		page.Data.Attributes.Code = codeID
 		page.BetaBannerEnabled = true
 		page.Breadcrumb = getAreaPageRenderBreadcrumb(parentName, page.Metadata.Title, codeListID, codeID)
@@ -379,4 +381,14 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 func getServiceAuthToken(ctx context.Context, req *http.Request) string {
 	token, _ := headers.GetServiceAuthToken(req)
 	return token
+}
+
+// mapCookiePreferences reads cookie policy and preferences cookies and then maps the values to the page model
+func mapCookiePreferences(req *http.Request, preferencesIsSet *bool, policy *model.CookiesPolicy) {
+	preferencesCookie := cookies.GetCookiePreferences(req)
+	*preferencesIsSet = preferencesCookie.IsPreferenceSet
+	*policy = model.CookiesPolicy{
+		Essential: preferencesCookie.Policy.Essential,
+		Usage:     preferencesCookie.Policy.Usage,
+	}
 }

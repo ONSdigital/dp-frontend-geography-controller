@@ -22,7 +22,6 @@ import (
 var (
 	userAccessToken    = "Blackened is the end Winter it will send"
 	serviceAccessToken = "Death of mother earth Never a rebirth Evolution's end Never will it mend never"
-	disabledLoop11     = false
 )
 
 type testCliError struct{}
@@ -80,7 +79,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -104,7 +103,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -128,7 +127,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -151,7 +150,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography").HandlerFunc(HomepageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)
@@ -184,7 +183,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -248,7 +247,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 
 			router.ServeHTTP(w, req)
 
@@ -318,7 +317,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -359,7 +358,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -389,7 +388,7 @@ func TestHandler(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient, disabledLoop11))
+			router.Path("/geography/{codeListID}").HandlerFunc(ListPageRender(mockRenderClient, mockCodeListClient))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -863,5 +862,28 @@ func TestGetUserAuthToken(t *testing.T) {
 
 		actual := getUserAuthToken(nil, r)
 		So(actual, ShouldBeEmpty)
+	})
+}
+
+func TestUnitMapCookiesPreferences(t *testing.T) {
+	req := httptest.NewRequest("", "/", nil)
+	pageModel := model.Page{
+		CookiesPreferencesSet: false,
+		CookiesPolicy: model.CookiesPolicy{
+			Essential: false,
+			Usage:     false,
+		},
+	}
+
+	Convey("maps cookies preferences cookie data to page model correctly", t, func() {
+		So(pageModel.CookiesPreferencesSet, ShouldEqual, false)
+		So(pageModel.CookiesPolicy.Essential, ShouldEqual, false)
+		So(pageModel.CookiesPolicy.Usage, ShouldEqual, false)
+		req.AddCookie(&http.Cookie{Name: "cookies_preferences_set", Value: "true"})
+		req.AddCookie(&http.Cookie{Name: "cookies_policy", Value: "%7B%22essential%22%3Atrue%2C%22usage%22%3Atrue%7D"})
+		mapCookiePreferences(req, &pageModel.CookiesPreferencesSet, &pageModel.CookiesPolicy)
+		So(pageModel.CookiesPreferencesSet, ShouldEqual, true)
+		So(pageModel.CookiesPolicy.Essential, ShouldEqual, true)
+		So(pageModel.CookiesPolicy.Usage, ShouldEqual, true)
 	})
 }
