@@ -12,8 +12,8 @@ An HTTP service for connecting the geography datasets to the cmd datasets journe
 | CODELIST_API_URL             | http://localhost:22400  | The URL of the code list api.
 | DATASET_API_URL              | http://localhost:22000  | The URL of the dataset api.
 | GRACEFUL_SHUTDOWN_TIMEOUT    | 5s                      | The graceful shutdown timeout in seconds
-| HEALTHCHECK_INTERVAL         | 10s                     | The time between calling healthcheck endpoints for check subsystems
-| HEALTHCHECK_CRITICAL_TIMEOUT | 1m                      | The time taken for the health changes from warning state to critical due to subsystem check failures
+| HEALTHCHECK_INTERVAL         | 30s                     | The time between calling healthcheck endpoints for check subsystems
+| HEALTHCHECK_CRITICAL_TIMEOUT | 90s                     | The time taken for the health changes from warning state to critical due to subsystem check failures
 
 ### Contributing
 
