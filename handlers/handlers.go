@@ -15,7 +15,7 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
-	"github.com/ONSdigital/go-ns/common"
+	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
@@ -368,7 +368,7 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 		return token
 	}
 
-	cookie, err := req.Cookie(common.FlorenceCookieKey)
+	cookie, err := req.Cookie(dprequest.FlorenceCookieKey)
 	if err != nil && err == http.ErrNoCookie {
 		return ""
 	} else if err != nil {

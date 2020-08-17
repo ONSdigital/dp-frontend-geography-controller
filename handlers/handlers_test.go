@@ -14,7 +14,7 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
-	"github.com/ONSdigital/go-ns/common"
+	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -849,11 +849,11 @@ func TestGetUserAuthToken(t *testing.T) {
 
 	Convey("should return access_token cookie value", t, func() {
 		r, err := http.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
-		r.AddCookie(&http.Cookie{Name: common.FlorenceCookieKey, Value: common.FlorenceCookieKey})
+		r.AddCookie(&http.Cookie{Name: dprequest.FlorenceCookieKey, Value: dprequest.FlorenceCookieKey})
 		So(err, ShouldBeNil)
 
 		actual := getUserAuthToken(nil, r)
-		So(actual, ShouldEqual, common.FlorenceCookieKey)
+		So(actual, ShouldEqual, dprequest.FlorenceCookieKey)
 	})
 
 	Convey("should return empty if not set", t, func() {
