@@ -168,7 +168,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			edition := codeListEditions.Items[0]
 			page.Metadata.Title = edition.Label
 
-			log.Event(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
+			log.Event(ctx, "getting codes for edition of a code list", log.INFO, log.Data{"edition": edition})
 			codes, err := cli.GetCodes(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition

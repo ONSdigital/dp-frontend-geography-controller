@@ -122,7 +122,7 @@ func (svc *Service) registerCheckers(ctx context.Context, cfg *config.Config) (e
 
 	if err = svc.HealthCheck.AddCheck("API Router", svc.routerHealthClient.Checker); err != nil {
 		hasErrors = true
-		log.Event(ctx, "failed to add image api checker", log.Error(err))
+		log.Event(ctx, "failed to add image api checker", log.ERROR, log.Error(err))
 	}
 
 	if err = svc.HealthCheck.AddCheck("frontend renderer", svc.RendererClient.Checker); err != nil {
