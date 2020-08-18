@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/smtp"
 	"os"
 	"os/signal"
@@ -13,12 +11,13 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/renderer"
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
-	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
+	"github.com/ONSdigital/dp-frontend-geography-controller/service"
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
-	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
+
+const serviceName = "dp-frontend-geography-controller"
 
 type unencryptedAuth struct {
 	smtp.Auth
@@ -35,89 +34,45 @@ var (
 )
 
 func main() {
-	log.Namespace = "dp-frontend-geography-controller"
-
+	log.Namespace = serviceName
 	ctx := context.Background()
 
+	if err := run(ctx); err != nil {
+		log.Event(ctx, "unable to run application", log.Error(err), log.FATAL)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
+	// Create service initialiser and an error channel for fatal errors
+	svcErrors := make(chan error, 1)
+	svcList := service.NewServiceList(&service.Init{})
+
+	// Read config
 	cfg, err := config.Get()
 	if err != nil {
 		log.Event(ctx, "error getting configuration", log.FATAL, log.Error(err))
-		os.Exit(1)
+		return err
 	}
-	log.Event(ctx, "config on startup", log.Data{"config": cfg})
+	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
 
-	versionInfo, err := health.NewVersionInfo(
-		BuildTime,
-		GitCommit,
-		Version,
-	)
+	// Start service
+	svc, err := service.Run(ctx, cfg, svcList, BuildTime, GitCommit, Version, svcErrors)
 	if err != nil {
-		log.Event(ctx, "failed to create service version information", log.FATAL, log.Error(err))
-		os.Exit(1)
+		return errors.Wrap(err, "running service failed")
 	}
 
-	cc := codelist.New(cfg.CodeListAPIURL)
-	dc := dataset.NewAPIClient(cfg.DatasetAPIURL)
-	rend := renderer.New(cfg.RendererURL)
-
-	hc := health.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
-	if err = registerCheckers(ctx, &hc, cc, dc, rend); err != nil {
-		os.Exit(1)
-	}
-
-	router := mux.NewRouter()
-
-	router.StrictSlash(true).Path("/health").HandlerFunc(hc.Handler)
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(rend, cc))
-	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(rend, cc))
-	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(rend, cc, dc))
-
-	s := dphttp.NewServer(cfg.BindAddr, router)
-	s.HandleOSSignals = false
-
-	go func() {
-		if err := s.ListenAndServe(); err != nil {
-			log.Event(ctx, "error starting http server", log.ERROR, log.Error(err))
-			os.Exit(2)
-		}
-	}()
-
-	hc.Start(ctx)
-
-	// Block until a fatal error occurs
+	// Blocks until an os interrupt or a fatal error occurs
 	select {
-	case signal := <-signals:
-		log.Event(ctx, "quitting after os signal received", log.INFO, log.Data{"signal": signal})
+	case err := <-svcErrors:
+		log.Event(ctx, "service error received", log.ERROR, log.Error(err))
+	case sig := <-signals:
+		log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
 	}
-
-	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
-
-	// give the app `Timeout` seconds to close gracefully before killing it.
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
-
-	go func() {
-		log.Event(ctx, "stop health checkers", log.INFO)
-		hc.Stop()
-
-		if err := s.Shutdown(ctx); err != nil {
-			log.Event(ctx, "failed to gracefully shutdown http server", log.ERROR, log.Error(err))
-		}
-
-		cancel() // stop timer
-	}()
-
-	// wait for timeout or success (via cancel)
-	<-ctx.Done()
-	if ctx.Err() == context.DeadlineExceeded {
-		log.Event(ctx, "context deadline exceeded", log.WARN, log.Error(ctx.Err()))
-	} else {
-		log.Event(ctx, "graceful shutdown complete", log.INFO, log.Data{"context": ctx.Err()})
-	}
-
-	os.Exit(0)
+	return svc.Close(ctx)
 }
 
 func registerCheckers(ctx context.Context, h *health.HealthCheck, c *codelist.Client, d *dataset.Client, r *renderer.Renderer) (err error) {
