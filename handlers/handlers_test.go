@@ -224,17 +224,17 @@ func TestHandler(t *testing.T) {
 					return codelist.CodesResults{
 						Items: []codelist.Item{
 							codelist.Item{
-								ID:    "E06000028",
+								Code:  "E06000028",
 								Label: "Bournemouth",
 								Links: codelist.CodeLinks{},
 							},
 							codelist.Item{
-								ID:    "S12000033",
+								Code:  "S12000033",
 								Label: "Aberdeen City",
 								Links: codelist.CodeLinks{},
 							},
 							codelist.Item{
-								ID:    "S12000034",
+								Code:  "S12000034",
 								Label: "Aberdeenshire",
 								Links: codelist.CodeLinks{},
 							},
