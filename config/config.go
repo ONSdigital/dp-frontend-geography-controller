@@ -24,7 +24,7 @@ func Get() (cfg *Config, err error) {
 
 	cfg = &Config{
 		BindAddr:                   ":23700",
-		APIRouterURL:               "http://localhost:23200",
+		APIRouterURL:               "http://localhost:23200/v1",
 		RendererURL:                "http://localhost:20010",
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        30 * time.Second,
