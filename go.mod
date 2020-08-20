@@ -3,8 +3,8 @@ module github.com/ONSdigital/dp-frontend-geography-controller
 go 1.13
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.25.0
-	github.com/ONSdigital/dp-cookies v0.1.0
+	github.com/ONSdigital/dp-api-clients-go v1.26.0
+	github.com/ONSdigital/dp-cookies v0.0.0-20200218165833-32f13bf75fbb
 	github.com/ONSdigital/dp-frontend-models v1.6.2
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-net v1.0.7
