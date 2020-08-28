@@ -2,26 +2,17 @@ package main
 
 import (
 	"context"
-	"net/smtp"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/ONSdigital/dp-api-clients-go/codelist"
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-api-clients-go/renderer"
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/service"
-	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/pkg/errors"
 )
 
 const serviceName = "dp-frontend-geography-controller"
-
-type unencryptedAuth struct {
-	smtp.Auth
-}
 
 // App version informaton retrieved on runtime
 var (
@@ -73,29 +64,4 @@ func run(ctx context.Context) error {
 		log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
 	}
 	return svc.Close(ctx)
-}
-
-func registerCheckers(ctx context.Context, h *health.HealthCheck, c *codelist.Client, d *dataset.Client, r *renderer.Renderer) (err error) {
-
-	hasErrors := false
-
-	if err = h.AddCheck("codelist API", c.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "failed to add codelist API checker", log.ERROR, log.Error(err))
-	}
-
-	if err = h.AddCheck("dataset API", d.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "failed to add dataset API checker", log.ERROR, log.Error(err))
-	}
-
-	if err = h.AddCheck("frontend renderer", r.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "failed to add frontend renderer checker", log.ERROR, log.Error(err))
-	}
-
-	if hasErrors {
-		return errors.New("Error(s) registering checkers for healthcheck")
-	}
-	return nil
 }
