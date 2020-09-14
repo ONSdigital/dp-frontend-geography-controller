@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -36,6 +37,12 @@ func Run(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceLi
 		ServiceList: serviceList,
 	}
 
+	// Get API router version from its URL
+	apiRouterVersion, err := GetAPIRouterVersion(cfg.APIRouterURL)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get health client for api router
 	svc.routerHealthClient = serviceList.GetHealthClient("api-router", cfg.APIRouterURL)
 
@@ -59,7 +66,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceLi
 	router.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
 	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(svc.RendererClient, svc.CodelistClient))
 	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(svc.RendererClient, svc.CodelistClient))
-	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(svc.RendererClient, svc.CodelistClient, svc.DatasetClient))
+	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(svc.RendererClient, svc.CodelistClient, svc.DatasetClient, apiRouterVersion))
 
 	svc.Server = serviceList.GetHTTPServer(cfg.BindAddr, router)
 
@@ -134,4 +141,13 @@ func (svc *Service) registerCheckers(ctx context.Context, cfg *config.Config) (e
 		return errors.New("Error(s) registering checkers for healthcheck")
 	}
 	return nil
+}
+
+// GetAPIRouterVersion returns the path of the provided url, which corresponds to the api router version
+func GetAPIRouterVersion(rawurl string) (string, error) {
+	apiRouterURL, err := url.Parse(rawurl)
+	if err != nil {
+		return "", err
+	}
+	return apiRouterURL.Path, nil
 }

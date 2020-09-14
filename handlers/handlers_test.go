@@ -435,7 +435,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 
 			renderCall := mockRenderClient.DoCalls()[0]
@@ -493,7 +493,7 @@ func TestAreaPageRender(t *testing.T) {
 											DatasetDimenion: codelist.Link{},
 											LatestVersion: codelist.Link{
 												ID:   "1",
-												Href: "http://localhost:22000/datasets/mid-year-pop-est/editions/time-series/versions/1",
+												Href: "http://localhost:22000/v1/datasets/mid-year-pop-est/editions/time-series/versions/1",
 											},
 										},
 									},
@@ -513,7 +513,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, "/v1"))
 			router.ServeHTTP(w, req)
 			renderCall := mockRenderClient.DoCalls()[0]
 
@@ -591,7 +591,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -644,7 +644,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -698,7 +698,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -773,7 +773,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -817,7 +817,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)

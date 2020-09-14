@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/ONSdigital/dp-api-clients-go/headers"
@@ -230,7 +231,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 
 //AreaPageRender gets data about a specific code, get what datasets are associated with the code and get information
 // about those datasets, maps it and passes it to the renderer
-func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) http.HandlerFunc {
+func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient, apiRouterVersion string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -299,11 +300,12 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 						}
 						mutex.Lock()
 						defer mutex.Unlock()
+						datasetWebsitePath := strings.TrimPrefix(datasetWebsiteURL.Path, apiRouterVersion)
 						datasets = append(datasets, area.Dataset{
 							ID:          datasetResp.Editions[0].Links.Self.ID,
 							Label:       datasetDetails.Title,
 							Description: datasetDetails.Description,
-							URI:         datasetWebsiteURL.Path,
+							URI:         datasetWebsitePath,
 						})
 
 						return
