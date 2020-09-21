@@ -64,6 +64,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceLi
 	// Initialise router
 	router := mux.NewRouter()
 	router.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
+
 	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(svc.RendererClient, svc.CodelistClient))
 	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(svc.RendererClient, svc.CodelistClient))
 	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(svc.RendererClient, svc.CodelistClient, svc.DatasetClient, apiRouterVersion))
