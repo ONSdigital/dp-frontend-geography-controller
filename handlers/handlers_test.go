@@ -14,7 +14,7 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
-	"github.com/ONSdigital/go-ns/common"
+	dprequest "github.com/ONSdigital/dp-net/request"
 	"github.com/gorilla/mux"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -123,7 +123,7 @@ func TestHandler(t *testing.T) {
 			}
 			mockCodeListClient := &CodeListClientMock{
 				GetGeographyCodeListsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string) (codelist.CodeListResults, error) {
-					return codelist.CodeListResults{}, errors.New("Code-list %s not found")
+					return codelist.CodeListResults{}, errors.New("code-list %s not found")
 				},
 			}
 
@@ -141,7 +141,7 @@ func TestHandler(t *testing.T) {
 		Convey("return a 500 status if rendering service doesn't respond", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
-					return nil, errors.New("Unrecognised payload format")
+					return nil, errors.New("unrecognised payload format")
 				},
 			}
 			mockCodeListClient := &CodeListClientMock{
@@ -208,7 +208,7 @@ func TestHandler(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -223,17 +223,17 @@ func TestHandler(t *testing.T) {
 				GetCodesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codelist.CodesResults, error) {
 					return codelist.CodesResults{
 						Items: []codelist.Item{
-							codelist.Item{
+							{
 								Code:  "E06000028",
 								Label: "Bournemouth",
 								Links: codelist.CodeLinks{},
 							},
-							codelist.Item{
+							{
 								Code:  "S12000033",
 								Label: "Aberdeen City",
 								Links: codelist.CodeLinks{},
 							},
-							codelist.Item{
+							{
 								Code:  "S12000034",
 								Label: "Aberdeenshire",
 								Links: codelist.CodeLinks{},
@@ -261,32 +261,32 @@ func TestHandler(t *testing.T) {
 
 			So(payload.Metadata.Title, ShouldEqual, "Local authority districts")
 			So(payload.Breadcrumb, ShouldResemble, []model.TaxonomyNode{
-				model.TaxonomyNode{
+				{
 					Title: "Home",
 					URI:   "https://www.ons.gov.uk",
 				},
-				model.TaxonomyNode{
+				{
 					Title: "Geography",
 					URI:   "/geography",
 				},
-				model.TaxonomyNode{
+				{
 					Title: "Local authority districts",
 					URI:   "/geography/local-authority",
 				},
 			})
 			So(len(payload.Data.Items), ShouldEqual, 3)
 			So(payload.Data.Items, ShouldResemble, []list.Item{
-				list.Item{
+				{
 					ID:    "S12000033",
 					Label: "Aberdeen City",
 					URI:   "/geography/local-authority/S12000033",
 				},
-				list.Item{
+				{
 					ID:    "S12000034",
 					Label: "Aberdeenshire",
 					URI:   "/geography/local-authority/S12000034",
 				},
-				list.Item{
+				{
 					ID:    "E06000028",
 					Label: "Bournemouth",
 					URI:   "/geography/local-authority/E06000028",
@@ -310,10 +310,10 @@ func TestHandler(t *testing.T) {
 			}
 			mockCodeListClient := &CodeListClientMock{
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
-					return codelist.EditionsListResults{}, errors.New("Code-list %s not found")
+					return codelist.EditionsListResults{}, errors.New("code-list %s not found")
 				},
 				GetCodesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codelist.CodesResults, error) {
-					return codelist.CodesResults{}, errors.New("Code-list %s not found")
+					return codelist.CodesResults{}, errors.New("code-list %s not found")
 				},
 			}
 
@@ -341,7 +341,7 @@ func TestHandler(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -354,7 +354,7 @@ func TestHandler(t *testing.T) {
 					}, nil
 				},
 				GetCodesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codelist.CodesResults, error) {
-					return codelist.CodesResults{}, errors.New("Code-list %s not found")
+					return codelist.CodesResults{}, errors.New("code-list %s not found")
 				},
 			}
 
@@ -376,7 +376,7 @@ func TestHandler(t *testing.T) {
 		Convey("return a 500 status if rendering service doesn't respond", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
-					return nil, errors.New("Unrecognised payload format")
+					return nil, errors.New("unrecognised payload format")
 				},
 			}
 			mockCodeListClient := &CodeListClientMock{
@@ -435,7 +435,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 
 			renderCall := mockRenderClient.DoCalls()[0]
@@ -462,7 +462,7 @@ func TestAreaPageRender(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -483,17 +483,17 @@ func TestAreaPageRender(t *testing.T) {
 				GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
 					return codelist.DatasetsResult{
 						Datasets: []codelist.Dataset{
-							codelist.Dataset{
+							{
 								Links:          codelist.DatasetLinks{},
 								DimensionLabal: "Adur",
 								Editions: []codelist.DatasetEdition{
-									codelist.DatasetEdition{
+									{
 										Links: codelist.DatasetEditionLink{
 											Self:            codelist.Link{},
 											DatasetDimenion: codelist.Link{},
 											LatestVersion: codelist.Link{
 												ID:   "1",
-												Href: "http://localhost:22000/datasets/mid-year-pop-est/editions/time-series/versions/1",
+												Href: "http://localhost:22000/v1/datasets/mid-year-pop-est/editions/time-series/versions/1",
 											},
 										},
 									},
@@ -513,7 +513,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, "/v1"))
 			router.ServeHTTP(w, req)
 			renderCall := mockRenderClient.DoCalls()[0]
 
@@ -526,26 +526,26 @@ func TestAreaPageRender(t *testing.T) {
 
 			So(payload.Metadata.Title, ShouldEqual, "Adur")
 			So(payload.Breadcrumb, ShouldResemble, []model.TaxonomyNode{
-				model.TaxonomyNode{
+				{
 					Title: "Home",
 					URI:   "https://www.ons.gov.uk",
 				},
-				model.TaxonomyNode{
+				{
 					Title: "Geography",
 					URI:   "/geography",
 				},
-				model.TaxonomyNode{
+				{
 					Title: "Local authority districts",
 					URI:   "/geography/local-authority",
 				},
-				model.TaxonomyNode{
+				{
 					Title: "Adur",
 					URI:   "/geography/local-authority/E07000223",
 				},
 			})
 			So(len(payload.Data.Datasets), ShouldEqual, 1)
 			So(payload.Data.Datasets, ShouldResemble, []area.Dataset{
-				area.Dataset{
+				{
 					ID:          "",
 					Label:       "Test dataset title",
 					Description: "Test dataset description",
@@ -576,7 +576,7 @@ func TestAreaPageRender(t *testing.T) {
 			}
 			mockCodeListClient := &CodeListClientMock{
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
-					return codelist.EditionsListResults{}, errors.New("Code-list %s not found")
+					return codelist.EditionsListResults{}, errors.New("code-list %s not found")
 				},
 				GetCodeByIDFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
 					return codelist.CodeResult{}, nil
@@ -591,7 +591,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -619,7 +619,7 @@ func TestAreaPageRender(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -632,7 +632,7 @@ func TestAreaPageRender(t *testing.T) {
 					}, nil
 				},
 				GetCodeByIDFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
-					return codelist.CodeResult{}, errors.New("Code-list %s not found")
+					return codelist.CodeResult{}, errors.New("code-list %s not found")
 				},
 				GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
 					return codelist.DatasetsResult{}, nil
@@ -644,7 +644,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -673,7 +673,7 @@ func TestAreaPageRender(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -689,7 +689,7 @@ func TestAreaPageRender(t *testing.T) {
 					return codelist.CodeResult{}, nil
 				},
 				GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
-					return codelist.DatasetsResult{}, errors.New("Code-list %s not found")
+					return codelist.DatasetsResult{}, errors.New("code-list %s not found")
 				},
 			}
 			mockDatasetClient := &DatasetClientMock{
@@ -698,7 +698,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 0)
@@ -728,7 +728,7 @@ func TestAreaPageRender(t *testing.T) {
 				GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
 					return codelist.EditionsListResults{
 						Items: []codelist.EditionsList{
-							codelist.EditionsList{
+							{
 								Edition: "2018",
 								Label:   "Local authority districts",
 								Links:   codelist.EditionsListLink{},
@@ -746,11 +746,11 @@ func TestAreaPageRender(t *testing.T) {
 				GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
 					return codelist.DatasetsResult{
 						Datasets: []codelist.Dataset{
-							codelist.Dataset{
+							{
 								Links:          codelist.DatasetLinks{},
 								DimensionLabal: "Adur",
 								Editions: []codelist.DatasetEdition{
-									codelist.DatasetEdition{
+									{
 										Links: codelist.DatasetEditionLink{
 											Self:            codelist.Link{},
 											DatasetDimenion: codelist.Link{},
@@ -769,11 +769,11 @@ func TestAreaPageRender(t *testing.T) {
 			}
 			mockDatasetClient := &DatasetClientMock{
 				GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (i dataset.DatasetDetails, e error) {
-					return dataset.DatasetDetails{}, errors.New("Dataset %s not found")
+					return dataset.DatasetDetails{}, errors.New("dataset %s not found")
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 
 			So(w.Code, ShouldEqual, 500)
@@ -797,7 +797,7 @@ func TestAreaPageRender(t *testing.T) {
 		Convey("return a 500 status if rendering service isn't responding", func() {
 			mockRenderClient := &RenderClientMock{
 				DoFunc: func(path string, bytes []byte) ([]byte, error) {
-					return nil, errors.New("Unrecognised payload format")
+					return nil, errors.New("unrecognised payload format")
 				},
 			}
 			mockCodeListClient := &CodeListClientMock{
@@ -817,7 +817,7 @@ func TestAreaPageRender(t *testing.T) {
 				},
 			}
 
-			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient))
+			router.Path("/geography/{codeListID}/{codeID}").HandlerFunc(AreaPageRender(mockRenderClient, mockCodeListClient, mockDatasetClient, ""))
 			router.ServeHTTP(w, req)
 			So(w.Code, ShouldEqual, 500)
 			So(len(mockRenderClient.DoCalls()), ShouldEqual, 1)
@@ -849,11 +849,11 @@ func TestGetUserAuthToken(t *testing.T) {
 
 	Convey("should return access_token cookie value", t, func() {
 		r, err := http.NewRequest(http.MethodGet, "http://localhost:8080/test", nil)
-		r.AddCookie(&http.Cookie{Name: common.FlorenceCookieKey, Value: common.FlorenceCookieKey})
 		So(err, ShouldBeNil)
+		r.AddCookie(&http.Cookie{Name: dprequest.FlorenceCookieKey, Value: dprequest.FlorenceCookieKey})
 
 		actual := getUserAuthToken(nil, r)
-		So(actual, ShouldEqual, common.FlorenceCookieKey)
+		So(actual, ShouldEqual, dprequest.FlorenceCookieKey)
 	})
 
 	Convey("should return empty if not set", t, func() {

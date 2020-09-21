@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/ONSdigital/dp-api-clients-go/headers"
@@ -15,7 +16,9 @@ import (
 	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
 	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
-	"github.com/ONSdigital/go-ns/common"
+	dphandlers "github.com/ONSdigital/dp-net/handlers"
+	dprequest "github.com/ONSdigital/dp-net/request"
+
 	"github.com/gorilla/mux"
 
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
@@ -63,12 +66,11 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 
 //HomepageRender gets geography data from the code-list-api and formats for rendering
 func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
+	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
 		ctx := req.Context()
 		var page homepage.Page
 
-		serviceAuthToken := getServiceAuthToken(ctx, req)
-		userAuthToken := getUserAuthToken(ctx, req)
+		serviceAuthToken := getServiceAuthToken(req)
 
 		codeListResults, err := cli.GetGeographyCodeLists(ctx, userAuthToken, serviceAuthToken)
 		if err != nil {
@@ -115,12 +117,13 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		page.Data.Items = types
 		page.BetaBannerEnabled = true
 		page.Metadata.Title = "Geography"
+		page.Language = lang
 		page.Breadcrumb = []model.TaxonomyNode{
-			model.TaxonomyNode{
+			{
 				Title: "Home",
 				URI:   "https://www.ons.gov.uk",
 			},
-			model.TaxonomyNode{
+			{
 				Title: "Geography",
 				URI:   "/geography",
 			},
@@ -141,12 +144,13 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 
 		w.Write(templateHTML)
 		return
-	}
+	})
 }
 
 //ListPageRender renders a list of codes associated to the first edition of a code-list
 func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
+	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
+
 		ctx := req.Context()
 		vars := mux.Vars(req)
 		codeListID := vars["codeListID"]
@@ -154,8 +158,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			codeListID: codeListID,
 		}
 		var page list.Page
-		serviceAuthToken := getServiceAuthToken(ctx, req)
-		userAuthToken := getUserAuthToken(ctx, req)
+		serviceAuthToken := getServiceAuthToken(req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
@@ -168,7 +171,7 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			edition := codeListEditions.Items[0]
 			page.Metadata.Title = edition.Label
 
-			log.Event(ctx, "getting codes for edition of a code list", log.Data{"edition": edition})
+			log.Event(ctx, "getting codes for edition of a code list", log.INFO, log.Data{"edition": edition})
 			codes, err := cli.GetCodes(ctx, userAuthToken, serviceAuthToken, codeListID, edition.Edition)
 			if err != nil {
 				logData["edition"] = edition.Edition
@@ -195,16 +198,17 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		}
 		mapCookiePreferences(req, &page.CookiesPreferencesSet, &page.CookiesPolicy)
 		page.BetaBannerEnabled = true
+		page.Language = lang
 		page.Breadcrumb = []model.TaxonomyNode{
-			model.TaxonomyNode{
+			{
 				Title: "Home",
 				URI:   "https://www.ons.gov.uk",
 			},
-			model.TaxonomyNode{
+			{
 				Title: "Geography",
 				URI:   "/geography",
 			},
-			model.TaxonomyNode{
+			{
 				Title: page.Metadata.Title,
 				URI:   fmt.Sprintf("/geography/%s", codeListID),
 			},
@@ -225,18 +229,17 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 
 		w.Write(templateHTML)
 		return
-	}
+	})
 }
 
 //AreaPageRender gets data about a specific code, get what datasets are associated with the code and get information
 // about those datasets, maps it and passes it to the renderer
-func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
+func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient, apiRouterVersion string) http.HandlerFunc {
+	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
 		codeListID := vars["codeListID"]
 		codeID := vars["codeID"]
-		collectionID := vars["codeID"]
 
 		logData := log.Data{
 			codeListID: codeListID,
@@ -244,8 +247,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		}
 
 		var page area.Page
-		serviceAuthToken := getServiceAuthToken(ctx, req)
-		userAuthToken := getUserAuthToken(ctx, req)
+		serviceAuthToken := getServiceAuthToken(req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
 		if err != nil {
@@ -299,11 +301,12 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 						}
 						mutex.Lock()
 						defer mutex.Unlock()
+						datasetWebsitePath := strings.TrimPrefix(datasetWebsiteURL.Path, apiRouterVersion)
 						datasets = append(datasets, area.Dataset{
 							ID:          datasetResp.Editions[0].Links.Self.ID,
 							Label:       datasetDetails.Title,
 							Description: datasetDetails.Description,
-							URI:         datasetWebsiteURL.Path,
+							URI:         datasetWebsitePath,
 						})
 
 						return
@@ -321,6 +324,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 		mapCookiePreferences(req, &page.Page.CookiesPreferencesSet, &page.Page.CookiesPolicy)
 		page.Data.Attributes.Code = codeID
 		page.BetaBannerEnabled = true
+		page.Language = lang
 		page.Breadcrumb = getAreaPageRenderBreadcrumb(parentName, page.Metadata.Title, codeListID, codeID)
 
 		templateJSON, err := json.Marshal(page)
@@ -338,24 +342,24 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient) h
 
 		w.Write(templateHTML)
 		return
-	}
+	})
 }
 
 func getAreaPageRenderBreadcrumb(parentName string, pageTitle string, codeListID string, codeID string) []model.TaxonomyNode {
 	return []model.TaxonomyNode{
-		model.TaxonomyNode{
+		{
 			Title: "Home",
 			URI:   "https://www.ons.gov.uk",
 		},
-		model.TaxonomyNode{
+		{
 			Title: "Geography",
 			URI:   "/geography",
 		},
-		model.TaxonomyNode{
+		{
 			Title: parentName,
 			URI:   fmt.Sprintf("/geography/%s", codeListID),
 		},
-		model.TaxonomyNode{
+		{
 			Title: pageTitle,
 			URI:   fmt.Sprintf("/geography/%s/%s", codeListID, codeID),
 		},
@@ -368,7 +372,7 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 		return token
 	}
 
-	cookie, err := req.Cookie(common.FlorenceCookieKey)
+	cookie, err := req.Cookie(dprequest.FlorenceCookieKey)
 	if err != nil && err == http.ErrNoCookie {
 		return ""
 	} else if err != nil {
@@ -378,7 +382,7 @@ func getUserAuthToken(ctx context.Context, req *http.Request) string {
 	return cookie.Value
 }
 
-func getServiceAuthToken(ctx context.Context, req *http.Request) string {
+func getServiceAuthToken(req *http.Request) string {
 	token, _ := headers.GetServiceAuthToken(req)
 	return token
 }

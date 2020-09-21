@@ -11,9 +11,8 @@ var cfg *Config
 //Config represents service configuration for dp-frontend-geography-controller
 type Config struct {
 	BindAddr                   string        `envconfig:"BIND_ADDR"`
+	APIRouterURL               string        `envconfig:"API_ROUTER_URL"`
 	RendererURL                string        `envconfig:"RENDERER_URL"`
-	CodeListAPIURL             string        `envconfig:"CODELIST_API_URL"`
-	DatasetAPIURL              string        `envconfig:"DATASET_API_URL"`
 	GracefulShutdownTimeout    time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
@@ -25,9 +24,8 @@ func Get() (cfg *Config, err error) {
 
 	cfg = &Config{
 		BindAddr:                   ":23700",
+		APIRouterURL:               "http://localhost:23200/v1",
 		RendererURL:                "http://localhost:20010",
-		CodeListAPIURL:             "http://localhost:22400",
-		DatasetAPIURL:              "http://localhost:22000",
 		GracefulShutdownTimeout:    5 * time.Second,
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
