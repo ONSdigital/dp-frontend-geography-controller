@@ -21,7 +21,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details
 
 ### Licence
 
-Copyright ©‎ 2018, Office for National Statistics (https://www.ons.gov.uk)
+Copyright ©‎ 2018-2021, Office for National Statistics (https://www.ons.gov.uk)
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.
 
