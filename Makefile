@@ -6,7 +6,7 @@ VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
 all: audit test build
 
 audit:
-	nancy go.sum
+	go list -m all | nancy sleuth
 
 build:
 	go build -tags 'production' -ldflags "-X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT) -X main.Version=$(VERSION)" -o $(BINPATH)/dp-frontend-geography-controller
