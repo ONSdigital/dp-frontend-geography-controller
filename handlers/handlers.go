@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -12,10 +12,11 @@ import (
 
 	"github.com/ONSdigital/dp-api-clients-go/headers"
 	"github.com/ONSdigital/dp-cookies/cookies"
+	"github.com/ONSdigital/dp-frontend-geography-controller/config"
+	"github.com/ONSdigital/dp-frontend-geography-controller/models/area"
+	"github.com/ONSdigital/dp-frontend-geography-controller/models/homepage"
+	"github.com/ONSdigital/dp-frontend-geography-controller/models/list"
 	"github.com/ONSdigital/dp-frontend-models/model"
-	"github.com/ONSdigital/dp-frontend-models/model/geography/area"
-	"github.com/ONSdigital/dp-frontend-models/model/geography/homepage"
-	"github.com/ONSdigital/dp-frontend-models/model/geography/list"
 	dphandlers "github.com/ONSdigital/dp-net/handlers"
 	dprequest "github.com/ONSdigital/dp-net/request"
 
@@ -44,7 +45,7 @@ type DatasetClient interface {
 
 // RenderClient is an interface with methods for require for rendering a template
 type RenderClient interface {
-	Do(string, []byte) ([]byte, error)
+	Page(w io.Writer, page interface{}, templateName string)
 }
 
 // ClientError is an interface that can be used to retrieve the status code if a client has errored
@@ -65,10 +66,12 @@ func setStatusCode(req *http.Request, w http.ResponseWriter, err error) {
 }
 
 //HomepageRender gets geography data from the code-list-api and formats for rendering
-func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
+func HomepageRender(cfg *config.Config, rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
 		ctx := req.Context()
-		var page homepage.Page
+		page := &homepage.Page{
+			Page: *model.NewPage(cfg.PatternLibraryAssetsPath, cfg.SiteDomain),
+		}
 
 		serviceAuthToken := getServiceAuthToken(req)
 
@@ -129,26 +132,13 @@ func HomepageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			},
 		}
 
-		templateJSON, err := json.Marshal(page)
-		if err != nil {
-			log.Event(ctx, "error marshaling geography code-lists page data", log.ERROR, log.Error(err))
-			setStatusCode(req, w, err)
-			return
-		}
-		templateHTML, err := rend.Do("geography-homepage", templateJSON)
-		if err != nil {
-			log.Event(ctx, "error rendering homepage", log.ERROR, log.Error(err))
-			setStatusCode(req, w, err)
-			return
-		}
-
-		w.Write(templateHTML)
+		rend.Page(w, page, "homepage")
 		return
 	})
 }
 
 //ListPageRender renders a list of codes associated to the first edition of a code-list
-func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
+func ListPageRender(cfg *config.Config, rend RenderClient, cli CodeListClient) http.HandlerFunc {
 	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
 
 		ctx := req.Context()
@@ -157,7 +147,11 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 		logData := log.Data{
 			codeListID: codeListID,
 		}
-		var page list.Page
+
+		page := &list.Page{
+			Page: *model.NewPage(cfg.PatternLibraryAssetsPath, cfg.SiteDomain),
+		}
+
 		serviceAuthToken := getServiceAuthToken(req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
@@ -214,27 +208,15 @@ func ListPageRender(rend RenderClient, cli CodeListClient) http.HandlerFunc {
 			},
 		}
 
-		templateJSON, err := json.Marshal(page)
-		if err != nil {
-			log.Event(ctx, "error marshalling geography list page data to JSON", log.ERROR, log.Error(err), logData)
-			setStatusCode(req, w, err)
-			return
-		}
-		templateHTML, err := rend.Do("geography-list", templateJSON)
-		if err != nil {
-			log.Event(ctx, "error getting HTML of list of geographic areas", log.ERROR, log.Error(err), logData)
-			setStatusCode(req, w, err)
-			return
-		}
+		rend.Page(w, page, "list")
 
-		w.Write(templateHTML)
 		return
 	})
 }
 
 //AreaPageRender gets data about a specific code, get what datasets are associated with the code and get information
 // about those datasets, maps it and passes it to the renderer
-func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient, apiRouterVersion string) http.HandlerFunc {
+func AreaPageRender(cfg *config.Config, rend RenderClient, cli CodeListClient, dcli DatasetClient, apiRouterVersion string) http.HandlerFunc {
 	return dphandlers.ControllerHandler(func(w http.ResponseWriter, req *http.Request, lang, collectionID, userAuthToken string) {
 		ctx := req.Context()
 		vars := mux.Vars(req)
@@ -246,7 +228,10 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient, a
 			codeID:     codeID,
 		}
 
-		var page area.Page
+		page := &area.Page{
+			Page: *model.NewPage(cfg.PatternLibraryAssetsPath, cfg.SiteDomain),
+		}
+
 		serviceAuthToken := getServiceAuthToken(req)
 
 		codeListEditions, err := cli.GetCodeListEditions(ctx, userAuthToken, serviceAuthToken, codeListID)
@@ -327,20 +312,7 @@ func AreaPageRender(rend RenderClient, cli CodeListClient, dcli DatasetClient, a
 		page.Language = lang
 		page.Breadcrumb = getAreaPageRenderBreadcrumb(parentName, page.Metadata.Title, codeListID, codeID)
 
-		templateJSON, err := json.Marshal(page)
-		if err != nil {
-			log.Event(ctx, "error marshalling geography area page data to JSON", log.ERROR, log.Error(err), logData)
-			setStatusCode(req, w, err)
-			return
-		}
-		templateHTML, err := rend.Do("geography-area", templateJSON)
-		if err != nil {
-			log.Event(ctx, "error getting HTML of geographic area page", log.ERROR, log.Error(err), logData)
-			setStatusCode(req, w, err)
-			return
-		}
-
-		w.Write(templateHTML)
+		rend.Page(w, page, "area")
 		return
 	})
 }
