@@ -7,15 +7,8 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"io"
 	"sync"
-)
-
-var (
-	lockCodeListClientMockGetCodeByID           sync.RWMutex
-	lockCodeListClientMockGetCodeListEditions   sync.RWMutex
-	lockCodeListClientMockGetCodes              sync.RWMutex
-	lockCodeListClientMockGetDatasetsByCode     sync.RWMutex
-	lockCodeListClientMockGetGeographyCodeLists sync.RWMutex
 )
 
 // Ensure, that CodeListClientMock does implement CodeListClient.
@@ -24,31 +17,31 @@ var _ CodeListClient = &CodeListClientMock{}
 
 // CodeListClientMock is a mock implementation of CodeListClient.
 //
-//     func TestSomethingThatUsesCodeListClient(t *testing.T) {
+// 	func TestSomethingThatUsesCodeListClient(t *testing.T) {
 //
-//         // make and configure a mocked CodeListClient
-//         mockedCodeListClient := &CodeListClientMock{
-//             GetCodeByIDFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
-// 	               panic("mock out the GetCodeByID method")
-//             },
-//             GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
-// 	               panic("mock out the GetCodeListEditions method")
-//             },
-//             GetCodesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codelist.CodesResults, error) {
-// 	               panic("mock out the GetCodes method")
-//             },
-//             GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
-// 	               panic("mock out the GetDatasetsByCode method")
-//             },
-//             GetGeographyCodeListsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string) (codelist.CodeListResults, error) {
-// 	               panic("mock out the GetGeographyCodeLists method")
-//             },
-//         }
+// 		// make and configure a mocked CodeListClient
+// 		mockedCodeListClient := &CodeListClientMock{
+// 			GetCodeByIDFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.CodeResult, error) {
+// 				panic("mock out the GetCodeByID method")
+// 			},
+// 			GetCodeListEditionsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string) (codelist.EditionsListResults, error) {
+// 				panic("mock out the GetCodeListEditions method")
+// 			},
+// 			GetCodesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string) (codelist.CodesResults, error) {
+// 				panic("mock out the GetCodes method")
+// 			},
+// 			GetDatasetsByCodeFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.DatasetsResult, error) {
+// 				panic("mock out the GetDatasetsByCode method")
+// 			},
+// 			GetGeographyCodeListsFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string) (codelist.CodeListResults, error) {
+// 				panic("mock out the GetGeographyCodeLists method")
+// 			},
+// 		}
 //
-//         // use mockedCodeListClient in code that requires CodeListClient
-//         // and then make assertions.
+// 		// use mockedCodeListClient in code that requires CodeListClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type CodeListClientMock struct {
 	// GetCodeByIDFunc mocks the GetCodeByID method.
 	GetCodeByIDFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, codeListID string, edition string, codeID string) (codelist.CodeResult, error)
@@ -131,6 +124,11 @@ type CodeListClientMock struct {
 			ServiceAuthToken string
 		}
 	}
+	lockGetCodeByID           sync.RWMutex
+	lockGetCodeListEditions   sync.RWMutex
+	lockGetCodes              sync.RWMutex
+	lockGetDatasetsByCode     sync.RWMutex
+	lockGetGeographyCodeLists sync.RWMutex
 }
 
 // GetCodeByID calls GetCodeByIDFunc.
@@ -153,9 +151,9 @@ func (mock *CodeListClientMock) GetCodeByID(ctx context.Context, userAuthToken s
 		Edition:          edition,
 		CodeID:           codeID,
 	}
-	lockCodeListClientMockGetCodeByID.Lock()
+	mock.lockGetCodeByID.Lock()
 	mock.calls.GetCodeByID = append(mock.calls.GetCodeByID, callInfo)
-	lockCodeListClientMockGetCodeByID.Unlock()
+	mock.lockGetCodeByID.Unlock()
 	return mock.GetCodeByIDFunc(ctx, userAuthToken, serviceAuthToken, codeListID, edition, codeID)
 }
 
@@ -178,9 +176,9 @@ func (mock *CodeListClientMock) GetCodeByIDCalls() []struct {
 		Edition          string
 		CodeID           string
 	}
-	lockCodeListClientMockGetCodeByID.RLock()
+	mock.lockGetCodeByID.RLock()
 	calls = mock.calls.GetCodeByID
-	lockCodeListClientMockGetCodeByID.RUnlock()
+	mock.lockGetCodeByID.RUnlock()
 	return calls
 }
 
@@ -200,9 +198,9 @@ func (mock *CodeListClientMock) GetCodeListEditions(ctx context.Context, userAut
 		ServiceAuthToken: serviceAuthToken,
 		CodeListID:       codeListID,
 	}
-	lockCodeListClientMockGetCodeListEditions.Lock()
+	mock.lockGetCodeListEditions.Lock()
 	mock.calls.GetCodeListEditions = append(mock.calls.GetCodeListEditions, callInfo)
-	lockCodeListClientMockGetCodeListEditions.Unlock()
+	mock.lockGetCodeListEditions.Unlock()
 	return mock.GetCodeListEditionsFunc(ctx, userAuthToken, serviceAuthToken, codeListID)
 }
 
@@ -221,9 +219,9 @@ func (mock *CodeListClientMock) GetCodeListEditionsCalls() []struct {
 		ServiceAuthToken string
 		CodeListID       string
 	}
-	lockCodeListClientMockGetCodeListEditions.RLock()
+	mock.lockGetCodeListEditions.RLock()
 	calls = mock.calls.GetCodeListEditions
-	lockCodeListClientMockGetCodeListEditions.RUnlock()
+	mock.lockGetCodeListEditions.RUnlock()
 	return calls
 }
 
@@ -245,9 +243,9 @@ func (mock *CodeListClientMock) GetCodes(ctx context.Context, userAuthToken stri
 		CodeListID:       codeListID,
 		Edition:          edition,
 	}
-	lockCodeListClientMockGetCodes.Lock()
+	mock.lockGetCodes.Lock()
 	mock.calls.GetCodes = append(mock.calls.GetCodes, callInfo)
-	lockCodeListClientMockGetCodes.Unlock()
+	mock.lockGetCodes.Unlock()
 	return mock.GetCodesFunc(ctx, userAuthToken, serviceAuthToken, codeListID, edition)
 }
 
@@ -268,9 +266,9 @@ func (mock *CodeListClientMock) GetCodesCalls() []struct {
 		CodeListID       string
 		Edition          string
 	}
-	lockCodeListClientMockGetCodes.RLock()
+	mock.lockGetCodes.RLock()
 	calls = mock.calls.GetCodes
-	lockCodeListClientMockGetCodes.RUnlock()
+	mock.lockGetCodes.RUnlock()
 	return calls
 }
 
@@ -294,9 +292,9 @@ func (mock *CodeListClientMock) GetDatasetsByCode(ctx context.Context, userAuthT
 		Edition:          edition,
 		CodeID:           codeID,
 	}
-	lockCodeListClientMockGetDatasetsByCode.Lock()
+	mock.lockGetDatasetsByCode.Lock()
 	mock.calls.GetDatasetsByCode = append(mock.calls.GetDatasetsByCode, callInfo)
-	lockCodeListClientMockGetDatasetsByCode.Unlock()
+	mock.lockGetDatasetsByCode.Unlock()
 	return mock.GetDatasetsByCodeFunc(ctx, userAuthToken, serviceAuthToken, codeListID, edition, codeID)
 }
 
@@ -319,9 +317,9 @@ func (mock *CodeListClientMock) GetDatasetsByCodeCalls() []struct {
 		Edition          string
 		CodeID           string
 	}
-	lockCodeListClientMockGetDatasetsByCode.RLock()
+	mock.lockGetDatasetsByCode.RLock()
 	calls = mock.calls.GetDatasetsByCode
-	lockCodeListClientMockGetDatasetsByCode.RUnlock()
+	mock.lockGetDatasetsByCode.RUnlock()
 	return calls
 }
 
@@ -339,9 +337,9 @@ func (mock *CodeListClientMock) GetGeographyCodeLists(ctx context.Context, userA
 		UserAuthToken:    userAuthToken,
 		ServiceAuthToken: serviceAuthToken,
 	}
-	lockCodeListClientMockGetGeographyCodeLists.Lock()
+	mock.lockGetGeographyCodeLists.Lock()
 	mock.calls.GetGeographyCodeLists = append(mock.calls.GetGeographyCodeLists, callInfo)
-	lockCodeListClientMockGetGeographyCodeLists.Unlock()
+	mock.lockGetGeographyCodeLists.Unlock()
 	return mock.GetGeographyCodeListsFunc(ctx, userAuthToken, serviceAuthToken)
 }
 
@@ -358,15 +356,11 @@ func (mock *CodeListClientMock) GetGeographyCodeListsCalls() []struct {
 		UserAuthToken    string
 		ServiceAuthToken string
 	}
-	lockCodeListClientMockGetGeographyCodeLists.RLock()
+	mock.lockGetGeographyCodeLists.RLock()
 	calls = mock.calls.GetGeographyCodeLists
-	lockCodeListClientMockGetGeographyCodeLists.RUnlock()
+	mock.lockGetGeographyCodeLists.RUnlock()
 	return calls
 }
-
-var (
-	lockRenderClientMockDo sync.RWMutex
-)
 
 // Ensure, that RenderClientMock does implement RenderClient.
 // If this is not the case, regenerate this file with moq.
@@ -374,73 +368,76 @@ var _ RenderClient = &RenderClientMock{}
 
 // RenderClientMock is a mock implementation of RenderClient.
 //
-//     func TestSomethingThatUsesRenderClient(t *testing.T) {
+// 	func TestSomethingThatUsesRenderClient(t *testing.T) {
 //
-//         // make and configure a mocked RenderClient
-//         mockedRenderClient := &RenderClientMock{
-//             DoFunc: func(in1 string, in2 []byte) ([]byte, error) {
-// 	               panic("mock out the Do method")
-//             },
-//         }
+// 		// make and configure a mocked RenderClient
+// 		mockedRenderClient := &RenderClientMock{
+// 			PageFunc: func(w io.Writer, page interface{}, templateName string)  {
+// 				panic("mock out the Page method")
+// 			},
+// 		}
 //
-//         // use mockedRenderClient in code that requires RenderClient
-//         // and then make assertions.
+// 		// use mockedRenderClient in code that requires RenderClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type RenderClientMock struct {
-	// DoFunc mocks the Do method.
-	DoFunc func(in1 string, in2 []byte) ([]byte, error)
+	// PageFunc mocks the Page method.
+	PageFunc func(w io.Writer, page interface{}, templateName string)
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Do holds details about calls to the Do method.
-		Do []struct {
-			// In1 is the in1 argument value.
-			In1 string
-			// In2 is the in2 argument value.
-			In2 []byte
+		// Page holds details about calls to the Page method.
+		Page []struct {
+			// W is the w argument value.
+			W io.Writer
+			// Page is the page argument value.
+			Page interface{}
+			// TemplateName is the templateName argument value.
+			TemplateName string
 		}
 	}
+	lockPage sync.RWMutex
 }
 
-// Do calls DoFunc.
-func (mock *RenderClientMock) Do(in1 string, in2 []byte) ([]byte, error) {
-	if mock.DoFunc == nil {
-		panic("RenderClientMock.DoFunc: method is nil but RenderClient.Do was just called")
+// Page calls PageFunc.
+func (mock *RenderClientMock) Page(w io.Writer, page interface{}, templateName string) {
+	if mock.PageFunc == nil {
+		panic("RenderClientMock.PageFunc: method is nil but RenderClient.Page was just called")
 	}
 	callInfo := struct {
-		In1 string
-		In2 []byte
+		W            io.Writer
+		Page         interface{}
+		TemplateName string
 	}{
-		In1: in1,
-		In2: in2,
+		W:            w,
+		Page:         page,
+		TemplateName: templateName,
 	}
-	lockRenderClientMockDo.Lock()
-	mock.calls.Do = append(mock.calls.Do, callInfo)
-	lockRenderClientMockDo.Unlock()
-	return mock.DoFunc(in1, in2)
+	mock.lockPage.Lock()
+	mock.calls.Page = append(mock.calls.Page, callInfo)
+	mock.lockPage.Unlock()
+	mock.PageFunc(w, page, templateName)
 }
 
-// DoCalls gets all the calls that were made to Do.
+// PageCalls gets all the calls that were made to Page.
 // Check the length with:
-//     len(mockedRenderClient.DoCalls())
-func (mock *RenderClientMock) DoCalls() []struct {
-	In1 string
-	In2 []byte
+//     len(mockedRenderClient.PageCalls())
+func (mock *RenderClientMock) PageCalls() []struct {
+	W            io.Writer
+	Page         interface{}
+	TemplateName string
 } {
 	var calls []struct {
-		In1 string
-		In2 []byte
+		W            io.Writer
+		Page         interface{}
+		TemplateName string
 	}
-	lockRenderClientMockDo.RLock()
-	calls = mock.calls.Do
-	lockRenderClientMockDo.RUnlock()
+	mock.lockPage.RLock()
+	calls = mock.calls.Page
+	mock.lockPage.RUnlock()
 	return calls
 }
-
-var (
-	lockDatasetClientMockGet sync.RWMutex
-)
 
 // Ensure, that DatasetClientMock does implement DatasetClient.
 // If this is not the case, regenerate this file with moq.
@@ -448,19 +445,19 @@ var _ DatasetClient = &DatasetClientMock{}
 
 // DatasetClientMock is a mock implementation of DatasetClient.
 //
-//     func TestSomethingThatUsesDatasetClient(t *testing.T) {
+// 	func TestSomethingThatUsesDatasetClient(t *testing.T) {
 //
-//         // make and configure a mocked DatasetClient
-//         mockedDatasetClient := &DatasetClientMock{
-//             GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.DatasetDetails, error) {
-// 	               panic("mock out the Get method")
-//             },
-//         }
+// 		// make and configure a mocked DatasetClient
+// 		mockedDatasetClient := &DatasetClientMock{
+// 			GetFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.DatasetDetails, error) {
+// 				panic("mock out the Get method")
+// 			},
+// 		}
 //
-//         // use mockedDatasetClient in code that requires DatasetClient
-//         // and then make assertions.
+// 		// use mockedDatasetClient in code that requires DatasetClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type DatasetClientMock struct {
 	// GetFunc mocks the Get method.
 	GetFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, datasetID string) (dataset.DatasetDetails, error)
@@ -481,6 +478,7 @@ type DatasetClientMock struct {
 			DatasetID string
 		}
 	}
+	lockGet sync.RWMutex
 }
 
 // Get calls GetFunc.
@@ -501,9 +499,9 @@ func (mock *DatasetClientMock) Get(ctx context.Context, userAuthToken string, se
 		CollectionID:     collectionID,
 		DatasetID:        datasetID,
 	}
-	lockDatasetClientMockGet.Lock()
+	mock.lockGet.Lock()
 	mock.calls.Get = append(mock.calls.Get, callInfo)
-	lockDatasetClientMockGet.Unlock()
+	mock.lockGet.Unlock()
 	return mock.GetFunc(ctx, userAuthToken, serviceAuthToken, collectionID, datasetID)
 }
 
@@ -524,8 +522,8 @@ func (mock *DatasetClientMock) GetCalls() []struct {
 		CollectionID     string
 		DatasetID        string
 	}
-	lockDatasetClientMockGet.RLock()
+	mock.lockGet.RLock()
 	calls = mock.calls.Get
-	lockDatasetClientMockGet.RUnlock()
+	mock.lockGet.RUnlock()
 	return calls
 }

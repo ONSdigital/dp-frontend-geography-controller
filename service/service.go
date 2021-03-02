@@ -7,10 +7,10 @@ import (
 	"github.com/ONSdigital/dp-api-clients-go/codelist"
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/health"
-	"github.com/ONSdigital/dp-api-clients-go/renderer"
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/handlers"
 	"github.com/ONSdigital/log.go/log"
+	"github.com/eldeal/test-modules/render"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -23,7 +23,7 @@ type Service struct {
 	Server             HTTPServer
 	CodelistClient     *codelist.Client
 	DatasetClient      *dataset.Client
-	RendererClient     *renderer.Renderer
+	Renderer           *render.Render
 	ServiceList        *ExternalServiceList
 }
 
@@ -49,7 +49,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceLi
 	// Initialise clients
 	svc.CodelistClient = codelist.NewWithHealthClient(svc.routerHealthClient)
 	svc.DatasetClient = dataset.NewWithHealthClient(svc.routerHealthClient)
-	svc.RendererClient = renderer.New(cfg.RendererURL)
+	svc.Renderer = render.New(cfg.PatternLibraryAssetsPath, cfg.SiteDomain)
 
 	// Get healthcheck with checkers
 	svc.HealthCheck, err = serviceList.GetHealthCheck(cfg, buildTime, gitCommit, version)
@@ -65,9 +65,9 @@ func Run(ctx context.Context, cfg *config.Config, serviceList *ExternalServiceLi
 	router := mux.NewRouter()
 	router.StrictSlash(true).Path("/health").HandlerFunc(svc.HealthCheck.Handler)
 
-	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(svc.RendererClient, svc.CodelistClient))
-	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(svc.RendererClient, svc.CodelistClient))
-	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(svc.RendererClient, svc.CodelistClient, svc.DatasetClient, apiRouterVersion))
+	router.StrictSlash(true).Path("/geography").Methods("GET").HandlerFunc(handlers.HomepageRender(cfg, svc.Renderer, svc.CodelistClient))
+	router.StrictSlash(true).Path("/geography/{codeListID}").Methods("GET").HandlerFunc(handlers.ListPageRender(cfg, svc.Renderer, svc.CodelistClient))
+	router.StrictSlash(true).Path("/geography/{codeListID}/{codeID}").Methods("GET").HandlerFunc(handlers.AreaPageRender(cfg, svc.Renderer, svc.CodelistClient, svc.DatasetClient, apiRouterVersion))
 
 	svc.Server = serviceList.GetHTTPServer(cfg.BindAddr, router)
 
@@ -131,11 +131,6 @@ func (svc *Service) registerCheckers(ctx context.Context, cfg *config.Config) (e
 	if err = svc.HealthCheck.AddCheck("API router", svc.routerHealthClient.Checker); err != nil {
 		hasErrors = true
 		log.Event(ctx, "failed to add api router checker", log.ERROR, log.Error(err))
-	}
-
-	if err = svc.HealthCheck.AddCheck("frontend renderer", svc.RendererClient.Checker); err != nil {
-		hasErrors = true
-		log.Event(ctx, "failed to add frontend renderer checker", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {
