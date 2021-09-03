@@ -8,7 +8,7 @@ require (
 	github.com/ONSdigital/dp-frontend-models v1.6.2
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-net v1.0.9
-	github.com/ONSdigital/log.go v1.0.1
+	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/kelseyhightower/envconfig v1.4.0

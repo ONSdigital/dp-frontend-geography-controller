@@ -8,7 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-frontend-geography-controller/config"
 	"github.com/ONSdigital/dp-frontend-geography-controller/service"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/pkg/errors"
 )
 
@@ -29,7 +29,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := run(ctx); err != nil {
-		log.Event(ctx, "unable to run application", log.Error(err), log.FATAL)
+		log.Fatal(ctx, "unable to run application", err)
 		os.Exit(1)
 	}
 }
@@ -45,10 +45,10 @@ func run(ctx context.Context) error {
 	// Read config
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "error getting configuration", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "error getting configuration", err)
 		return err
 	}
-	log.Event(ctx, "config on startup", log.INFO, log.Data{"config": cfg})
+	log.Info(ctx, "config on startup", log.Data{"config": cfg})
 
 	// Start service
 	svc, err := service.Run(ctx, cfg, svcList, BuildTime, GitCommit, Version, svcErrors)
@@ -59,9 +59,9 @@ func run(ctx context.Context) error {
 	// Blocks until an os interrupt or a fatal error occurs
 	select {
 	case err := <-svcErrors:
-		log.Event(ctx, "service error received", log.ERROR, log.Error(err))
+		log.Error(ctx, "service error received", err)
 	case sig := <-signals:
-		log.Event(ctx, "os signal received", log.Data{"signal": sig}, log.INFO)
+		log.Info(ctx, "os signal received", log.Data{"signal": sig})
 	}
 	return svc.Close(ctx)
 }
