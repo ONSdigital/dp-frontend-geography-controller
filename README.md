@@ -1,3 +1,7 @@
+***
+⚠️ This repository will be archived in November 2023 as it is no longer in development. ⚠️
+***
+
 dp-frontend-geography-controller
 ==================
 
