@@ -1,5 +1,5 @@
 ***
-⚠️ This repository will be archived in December 2023 as it is no longer in development. ⚠️
+:warning: This repository will be archived in December 2023 as it is no longer in development. :warning:
 ***
 
 dp-frontend-geography-controller
